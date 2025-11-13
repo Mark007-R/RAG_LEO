@@ -22,6 +22,21 @@ The system retrieves relevant chunks from the document and generates accurate an
 
 ---
 
+<!-- ## Implementation
+
+### Project Interface Preview 
+![Chat Home Page](./images/Chat_Home_Page.png)
+![Chat Home Page](./images/Chat_Home_Page2.png) -->
+
+## 🖼️ Project Interface Preview
+
+| Chat Home Page | Chat Response View |
+|----------------|--------------------|
+| ![Chat Home Page](./Chat_Home_Page.png) | ![Chat Home Page 2](./Chat_Home_Page2.png) |
+
+
+---
+
 ## 🧩 Architecture
 
 ```
