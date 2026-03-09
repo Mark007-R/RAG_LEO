@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | RAG_LEO</title>
+    <meta name="description" content="RAG_LEO Admin Dashboard - Monitor and manage your PDF Q&A system">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            grid-column: 1 / -1;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-header h1 {
+            font-size: 24px;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card h3 {
+            font-size: 16px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--accent-primary);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .recent-queries {
+            grid-column: 1 / -1;
+        }
+
+        .query-item {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .query-item .query-text {
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .query-item .query-meta {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .system-health {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .health-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+        }
+
+        .health-indicator.unhealthy {
+            background: var(--error-color);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        table th {
+            background: var(--bg-tertiary);
+            font-weight: 500;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        table td {
+            font-size: 13px;
+        }
+
+        table tr:hover {
+            background: var(--bg-tertiary);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div>
+                <h1>🦁 RAG_LEO Admin Dashboard</h1>
+                <p style="color: var(--text-secondary); font-size: 13px;">Production Monitoring & Management</p>
+            </div>
+            <div class="system-health">
+                <span class="health-indicator" id="healthIndicator"></span>
+                <span id="healthStatus">Checking...</span>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="card">
+            <h3>📚 Total Documents</h3>
+            <div class="stat-value" id="totalDocs">-</div>
+            <div class="stat-label">Processed PDFs</div>
+        </div>
+
+        <div class="card">
+            <h3>💬 Total Queries</h3>
+            <div class="stat-value" id="totalQueries">-</div>
+            <div class="stat-label">Questions asked</div>
+        </div>
+
+        <div class="card">
+            <h3>⚡ Avg Response Time</h3>
+            <div class="stat-value" id="avgResponseTime">-</div>
+            <div class="stat-label">Seconds</div>
+        </div>
+
+        <div class="card">
+            <h3>💾 Storage Used</h3>
+            <div class="stat-value" id="storageUsed">-</div>
+            <div class="stat-label">File storage</div>
+        </div>
+
+        <!-- System Info -->
+        <div class="card">
+            <h3>🖥️ System Information</h3>
+            <div style="font-size: 13px; line-height: 1.8;">
+                <p><strong>Environment:</strong> <span id="environment">-</span></p>
+                <p><strong>Database:</strong> <span id="database">-</span></p>
+                <p><strong>Version:</strong> <span id="version">-</span></p>
+                <p><strong>Uptime:</strong> <span id="uptime">-</span></p>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <h3>⚡ Quick Actions</h3>
+            <div class="action-buttons">
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    🏠 Main App
+                </button>
+                <button class="btn btn-secondary" onclick="refreshStats()">
+                    🔄 Refresh
+                </button>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-danger" onclick="clearCache()">
+                    🗑️ Clear Cache
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Documents -->
+        <div class="card recent-queries">
+            <h3>📄 Recent Documents</h3>
+            <div id="recentDocs">
+                <p style="color: var(--text-secondary); font-size: 13px;">Loading...</p>
+            </div>
+        </div>
+
+        <!-- All Documents Table -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <h3>📋 All Documents</h3>
+            <div style="overflow-x: auto;">
+                <table id="documentsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Filename</th>
+                            <th>Size</th>
+                            <th>Uploaded</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-secondary);">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
+    <script>
+        // Admin Dashboard Logic
+        let statsData = {};
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            checkHealth();
+            loadStats();
+            loadDocuments();
+        });
+
+        // Check system health
+        async function checkHealth() {
+            try {
+                const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.HEALTH));
+                const data = await response.json();
+
+                const indicator = document.getElementById('healthIndicator');
+                const status = document.getElementById('healthStatus');
+
+                if (data.status === 'healthy') {
+                    indicator.classList.remove('unhealthy');
+                    status.textContent = '✓ System Healthy';
+                    status.style.color = 'var(--accent-primary)';
+                } else {
+                    indicator.classList.add('unhealthy');
+                    status.textContent = '✗ System Down';
+                    status.style.color = 'var(--error-color)';
+                }
+
+                // Update system info
+                document.getElementById('environment').textContent = data.environment || 'N/A';
+                document.getElementById('database').textContent = data.database || 'N/A';
+                document.getElementById('version').textContent = data.version || 'N/A';
+            } catch (error) {
+                console.error('Health check failed:', error);
+                document.getElementById('healthIndicator').classList.add('unhealthy');
+                document.getElementById('healthStatus').textContent = '✗ Connection Failed';
+            }
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch(
+                    getApiUrl(API_CONFIG.ENDPOINTS.STATS),
+                    { headers: getHeaders() }
+                );
+                const data = await response.json();
+
+                statsData = data;
+
+                document.getElementById('totalDocs').textContent = data.total_documents || 0;
+                document.getElementById('totalQueries').textContent = data.total_queries || 0;
+                document.getElementById('avgResponseTime').textContent = 
+                    data.avg_processing_time ? data.avg_processing_time.toFixed(2) : '0.00';
+                document.getElementById('storageUsed').textContent = 
+                    formatFileSize(data.total_storage || 0);
+
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Load documents
+        async function loadDocuments() {
+            try {
+                const response = await fetch(
+                    getApiUrl(API_CONFIG.ENDPOINTS.DOCUMENTS),
+                    { headers: getHeaders() }
+                );
+                const result = await response.json();
+                const documents = result.documents || [];
+
+                // Update recent documents
+                const recentDocs = document.getElementById('recentDocs');
+                if (documents.length === 0) {
+                    recentDocs.innerHTML = '<p style="color: var(--text-secondary); font-size: 13px;">No documents yet</p>';
+                } else {
+                    const recent = documents.slice(0, 5);
+                    recentDocs.innerHTML = recent.map(doc => `
+                        <div class="query-item">
+                            <div class="query-text">📄 ${escapeHtml(doc.filename)}</div>
+                            <div class="query-meta">
+                                ID: ${doc.id.substring(0, 12)}... • 
+                                Uploaded: ${new Date(doc.uploaded_at).toLocaleString()} • 
+                                Size: ${formatFileSize(doc.file_size || 0)}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                // Update documents table
+                const tbody = document.querySelector('#documentsTable tbody');
+                if (documents.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No documents</td></tr>';
+                } else {
+                    tbody.innerHTML = documents.map(doc => `
+                        <tr>
+                            <td>${doc.id.substring(0, 8)}...</td>
+                            <td>${escapeHtml(doc.filename)}</td>
+                            <td>${formatFileSize(doc.file_size || 0)}</td>
+                            <td>${new Date(doc.uploaded_at).toLocaleDateString()}</td>
+                            <td><span style="color: var(--accent-primary);">✓ Active</span></td>
+                            <td>
+                                <button class="btn-small btn-danger" onclick="deleteDocument('${doc.id}')">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load documents:', error);
+            }
+        }
+
+        // Delete document
+        async function deleteDocument(docId) {
+            if (!confirm('Delete this document? This cannot be undone.')) return;
+
+            try {
+                const response = await fetch(
+                    `${getApiUrl(API_CONFIG.ENDPOINTS.DOCUMENT)}/${docId}`,
+                    {
+                        method: 'DELETE',
+                        headers: getHeaders()
+                    }
+                );
+
+                if (response.ok) {
+                    alert('Document deleted successfully');
+                    refreshStats();
+                } else {
+                    const data = await response.json();
+                    alert('Delete failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Delete failed: ' + error.message);
+            }
+        }
+
+        // Refresh all stats
+        function refreshStats() {
+            loadStats();
+            loadDocuments();
+            checkHealth();
+        }
+
+        // Clear cache
+        function clearCache() {
+            if (!confirm('Clear application cache? This will log you out.')) return;
+            localStorage.clear();
+            alert('Cache cleared');
+            window.location.reload();
+        }
+
+        // Utility: Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Utility: Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+
+</html>

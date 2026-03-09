@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - RAG_LEO</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .error-code {
+            font-size: 72px;
+            font-weight: bold;
+            color: var(--error-color);
+            margin-bottom: 20px;
+        }
+
+        .error-title {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .error-message {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="error-container">
+        <div class="error-code">{{ error_code or '500' }}</div>
+        <h1 class="error-title">{{ error_title or 'Something went wrong' }}</h1>
+        <p class="error-message">
+            {{ error_message or 'An unexpected error occurred. Please try again later.' }}
+        </p>
+        <div class="error-actions">
+            <button class="btn btn-primary" onclick="window.location.href='/'">
+                🏠 Go Home
+            </button>
+            <button class="btn btn-secondary" onclick="window.history.back()">
+                ← Go Back
+            </button>
+        </div>
+    </div>
+</body>
+
+</html>
