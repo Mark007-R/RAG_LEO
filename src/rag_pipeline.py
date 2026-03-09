@@ -12,27 +12,15 @@ from .utils import save_pickle, load_pickle
 
 logger = logging.getLogger(__name__)
 
-
 class RAGPipeline:
-    """
-    Retrieval-Augmented Generation pipeline for document Q&A.
-    Uses sentence-transformers for embeddings and Groq/Llama 3 for generation.
-    """
-    
+
     def __init__(
         self, 
         embed_model_name: str = 'sentence-transformers/all-MiniLM-L6-v2',
         groq_model_name: str = 'llama-3.1-8b-instant',
         api_key: Optional[str] = None,
     ):
-        """
-        Initialize RAG pipeline with embedding and Groq/Llama 3 generation models.
         
-        Args:
-            embed_model_name: HuggingFace model for embeddings (free)
-            groq_model_name: Groq model name (e.g., 'llama-3.1-8b-instant', 'llama-3.3-70b-versatile')
-            api_key: Groq API key (if not in environment variables)
-        """
         logger.info("Initializing RAG Pipeline with Groq/Llama 3...")
         
         # Set Groq API key from parameter or environment
@@ -76,19 +64,7 @@ class RAGPipeline:
         self.embedding_dim: Optional[int] = None
 
     def extract_text_from_pdf(self, pdf_path: str) -> str:
-        """
-        Extract text from PDF file.
         
-        Args:
-            pdf_path: Path to PDF file
-            
-        Returns:
-            Extracted text content
-            
-        Raises:
-            FileNotFoundError: If PDF file doesn't exist
-            Exception: If PDF reading fails
-        """
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
         
@@ -124,17 +100,7 @@ class RAGPipeline:
         chunk_size: int = 1000, 
         chunk_overlap: int = 200
     ) -> List[str]:
-        """
-        Split text into overlapping chunks for better retrieval.
         
-        Args:
-            text: Input text to chunk
-            chunk_size: Maximum characters per chunk
-            chunk_overlap: Overlap between consecutive chunks
-            
-        Returns:
-            List of text chunks
-        """
         if not text or not text.strip():
             logger.warning("Empty text provided for chunking")
             return []
@@ -158,19 +124,7 @@ class RAGPipeline:
             raise
 
     def build_faiss_index(self, doc_id: str, persist: bool = True) -> faiss.Index:
-        """
-        Build FAISS index from text chunks and optionally persist to disk.
         
-        Args:
-            doc_id: Unique document identifier
-            persist: Whether to save index and chunks to disk
-            
-        Returns:
-            FAISS index object
-            
-        Raises:
-            ValueError: If no text chunks available
-        """
         if not self.text_chunks:
             raise ValueError("No text chunks available. Run chunk_text() first.")
         
@@ -212,7 +166,7 @@ class RAGPipeline:
             raise
 
     def _persist_index(self, doc_id: str) -> None:
-        """Save FAISS index and chunks to disk."""
+        
         try:
             # Ensure directories exist
             os.makedirs('indexes', exist_ok=True)
@@ -233,18 +187,7 @@ class RAGPipeline:
             raise
 
     def load_index(self, doc_id: str) -> faiss.Index:
-        """
-        Load FAISS index and chunks from disk.
         
-        Args:
-            doc_id: Document identifier
-            
-        Returns:
-            Loaded FAISS index
-            
-        Raises:
-            FileNotFoundError: If index or chunks not found
-        """
         index_path = os.path.join('indexes', f'{doc_id}.index')
         chunks_path = os.path.join('metadata', f'{doc_id}_chunks.pkl')
         
@@ -272,19 +215,7 @@ class RAGPipeline:
             raise
 
     def retrieve(self, query: str, top_k: int = 4) -> List[str]:
-        """
-        Retrieve most relevant chunks for a query.
         
-        Args:
-            query: User query
-            top_k: Number of chunks to retrieve
-            
-        Returns:
-            List of retrieved text chunks
-            
-        Raises:
-            ValueError: If index not loaded
-        """
         if self.index is None:
             raise ValueError('FAISS index not loaded. Call load_index() or build_faiss_index().')
         
@@ -319,19 +250,7 @@ class RAGPipeline:
         temperature: float = 0.7,
         max_tokens: int = 512
     ) -> str:
-        """
-        Generate answer using Groq/Llama 3 with retrieved context and query.
         
-        Args:
-            query: User query
-            retrieved_chunks: List of relevant text chunks
-            max_source_chars: Maximum context characters to use
-            temperature: Sampling temperature (higher = more creative)
-            max_tokens: Maximum tokens in generated answer
-            
-        Returns:
-            Generated answer
-        """
         if not retrieved_chunks:
             return "I couldn't find relevant information to answer your question."
         
@@ -365,14 +284,3 @@ class RAGPipeline:
         except Exception as e:
             logger.error(f"Error generating answer: {e}")
             return f"Error generating answer: {str(e)}"
-
-    def get_stats(self) -> dict:
-        """Get current pipeline statistics."""
-        return {
-            'doc_id': self.doc_id,
-            'chunks_count': len(self.text_chunks),
-            'index_loaded': self.index is not None,
-            'embedding_model': 'sentence-transformers/all-MiniLM-L6-v2',
-            'generation_model': self.groq_model_name,
-            'embedding_dim': self.embedding_dim
-        }

@@ -111,10 +111,10 @@ function updateApiKeyStatus(isValid) {
     
     if (isValid) {
         DOM.apiKeyStatus.className = 'api-key-status valid';
-        DOM.apiKeyStatus.textContent = '✓ API Key Set';
+        DOM.apiKeyStatus.textContent = ' API Key Set';
     } else {
         DOM.apiKeyStatus.className = 'api-key-status invalid';
-        DOM.apiKeyStatus.textContent = '⚠ No API Key';
+        DOM.apiKeyStatus.textContent = ' No API Key';
     }
 }
 
@@ -125,11 +125,11 @@ async function checkHealth() {
         const data = await response.json();
         
         if (data.status === 'healthy') {
-            console.log('✓ Backend is healthy');
+            console.log(' Backend is healthy');
             return true;
         }
     } catch (error) {
-        console.error('✗ Backend health check failed:', error);
+        console.error(' Backend health check failed:', error);
         showStatusMessage('Backend connection failed', 'error');
         return false;
     }
@@ -174,19 +174,19 @@ function displayDocuments() {
         return `
             <div class="document-item ${isActive ? 'active' : ''}" onclick="selectDocument('${doc.id}', '${escapeHtml(doc.filename)}')">
                 <div class="doc-header">
-                    <span class="doc-name">📄 ${escapeHtml(doc.filename)}</span>
+                    <span class="doc-name"> ${escapeHtml(doc.filename)}</span>
                 </div>
                 <div class="doc-meta">
                     <span class="doc-id">ID: ${doc.id.substring(0, 12)}...</span>
-                    <span class="doc-date">📅 ${uploadDate}</span>
-                    <span class="doc-size">📦 ${fileSize}</span>
+                    <span class="doc-date"> ${uploadDate}</span>
+                    <span class="doc-size"> ${fileSize}</span>
                 </div>
                 <div class="doc-actions">
                     <button class="btn-small btn-primary" onclick="event.stopPropagation(); selectDocument('${doc.id}', '${escapeHtml(doc.filename)}')">
-                        ${isActive ? '✓ Selected' : 'Select'}
+                        ${isActive ? ' Selected' : 'Select'}
                     </button>
                     <button class="btn-small btn-danger" onclick="event.stopPropagation(); deleteDocument('${doc.id}', '${escapeHtml(doc.filename)}')">
-                        🗑️
+                        
                     </button>
                 </div>
             </div>
@@ -304,7 +304,7 @@ async function handleUpload(e) {
         const result = await response.json();
         
         if (response.ok) {
-            showStatusMessage(`✓ ${result.filename} uploaded successfully!`, 'success');
+            showStatusMessage(` ${result.filename} uploaded successfully!`, 'success');
             
             // Reset form
             DOM.uploadForm.reset();
@@ -410,7 +410,7 @@ function addMessage(text, type, isLoading = false, processingTime = null) {
     
     let metaHtml = `<div class="message-meta">⏰ ${timestamp}`;
     if (processingTime) {
-        metaHtml += ` • ⚡ ${processingTime.toFixed(2)}s`;
+        metaHtml += ` •  ${processingTime.toFixed(2)}s`;
     }
     metaHtml += '</div>';
     
@@ -432,7 +432,7 @@ function addRetrievedChunks(chunks) {
     chunksDiv.className = 'retrieved-chunks';
     chunksDiv.innerHTML = `
         <details>
-            <summary>📚 View ${chunks.length} retrieved context chunks</summary>
+            <summary> View ${chunks.length} retrieved context chunks</summary>
             ${chunks.map((chunk, i) => `
                 <div class="chunk-item">
                     <strong>Chunk ${i + 1} (Relevance Score)</strong>
@@ -451,7 +451,7 @@ function clearChat() {
     
     DOM.chat.innerHTML = `
         <div class="welcome-message">
-            <p>👋 Chat cleared!</p>
+            <p> Chat cleared!</p>
             <p>Select a document and start asking questions.</p>
         </div>
     `;

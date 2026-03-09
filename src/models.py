@@ -1,20 +1,12 @@
-"""
-Database models for production-grade document management.
-Uses SQLAlchemy ORM for data persistence.
-"""
 from datetime import datetime
 from typing import Optional
 from sqlalchemy import String, Integer, DateTime, Text, Float, Boolean, Index
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-
 class Base(DeclarativeBase):
-    """Base class for all models."""
     pass
 
-
 class Document(Base):
-    """Document metadata model."""
     __tablename__ = "documents"
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -22,34 +14,23 @@ class Document(Base):
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
-    file_size: Mapped[int] = mapped_column(Integer, nullable=False)  # bytes
+    file_size: Mapped[int] = mapped_column(Integer, nullable=False)
     mime_type: Mapped[str] = mapped_column(String(100), default="application/pdf")
-    
-    # Processing metadata
-    status: Mapped[str] = mapped_column(String(50), default="pending")  # pending, processing, completed, failed
+    status: Mapped[str] = mapped_column(String(50), default="pending")
     chunks_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     text_length: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     embedding_dim: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    
-    # Index paths
     index_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     chunks_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    
-    # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     last_accessed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    
-    # Metadata
     page_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     processing_time_seconds: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
-    # Soft delete
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     
-    # Indexes for common queries
     __table_args__ = (
         Index('idx_status', 'status'),
         Index('idx_created_at', 'created_at'),
@@ -60,7 +41,6 @@ class Document(Base):
         return f"<Document(doc_id={self.doc_id}, filename={self.original_filename}, status={self.status})>"
     
     def to_dict(self) -> dict:
-        """Convert model to dictionary."""
         return {
             'id': self.id,
             'doc_id': self.doc_id,
@@ -74,36 +54,22 @@ class Document(Base):
             'last_accessed_at': self.last_accessed_at.isoformat() if self.last_accessed_at else None,
         }
 
-
 class Query(Base):
-    """Query history model for analytics."""
     __tablename__ = "queries"
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     query_id: Mapped[str] = mapped_column(String(36), unique=True, nullable=False, index=True)
     doc_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
-    
-    # Query details
     query_text: Mapped[str] = mapped_column(Text, nullable=False)
     answer_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
-    # Performance metrics
     retrieval_time_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     generation_time_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     total_time_ms: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    
-    # Retrieval details
     top_k: Mapped[int] = mapped_column(Integer, default=4)
     chunks_retrieved: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    
-    # Status
-    status: Mapped[str] = mapped_column(String(50), default="success")  # success, error
+    status: Mapped[str] = mapped_column(String(50), default="success")
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
-    # Timestamp
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
-    
-    # User tracking (optional)
     user_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
     
@@ -111,7 +77,6 @@ class Query(Base):
         return f"<Query(query_id={self.query_id}, doc_id={self.doc_id}, status={self.status})>"
     
     def to_dict(self) -> dict:
-        """Convert model to dictionary."""
         return {
             'id': self.id,
             'query_id': self.query_id,
@@ -123,35 +88,24 @@ class Query(Base):
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
-
 class APIKey(Base):
-    """API key management model."""
     __tablename__ = "api_keys"
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     key_hash: Mapped[str] = mapped_column(String(256), unique=True, nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
-    # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    
-    # Usage tracking
     request_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    
-    # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    
-    # Rate limiting
     rate_limit_per_minute: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     
     def __repr__(self) -> str:
         return f"<APIKey(name={self.name}, is_active={self.is_active})>"
     
     def is_valid(self) -> bool:
-        """Check if API key is valid and not expired."""
         if not self.is_active:
             return False
         if self.expires_at and self.expires_at < datetime.utcnow():

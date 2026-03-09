@@ -146,32 +146,32 @@
 
         <!-- Stats Cards -->
         <div class="card">
-            <h3>📚 Total Documents</h3>
+            <h3> Total Documents</h3>
             <div class="stat-value" id="totalDocs">-</div>
             <div class="stat-label">Processed PDFs</div>
         </div>
 
         <div class="card">
-            <h3>💬 Total Queries</h3>
+            <h3> Total Queries</h3>
             <div class="stat-value" id="totalQueries">-</div>
             <div class="stat-label">Questions asked</div>
         </div>
 
         <div class="card">
-            <h3>⚡ Avg Response Time</h3>
+            <h3> Avg Response Time</h3>
             <div class="stat-value" id="avgResponseTime">-</div>
             <div class="stat-label">Seconds</div>
         </div>
 
         <div class="card">
-            <h3>💾 Storage Used</h3>
+            <h3> Storage Used</h3>
             <div class="stat-value" id="storageUsed">-</div>
             <div class="stat-label">File storage</div>
         </div>
 
         <!-- System Info -->
         <div class="card">
-            <h3>🖥️ System Information</h3>
+            <h3> System Information</h3>
             <div style="font-size: 13px; line-height: 1.8;">
                 <p><strong>Environment:</strong> <span id="environment">-</span></p>
                 <p><strong>Database:</strong> <span id="database">-</span></p>
@@ -182,25 +182,25 @@
 
         <!-- Quick Actions -->
         <div class="card">
-            <h3>⚡ Quick Actions</h3>
+            <h3> Quick Actions</h3>
             <div class="action-buttons">
                 <button class="btn btn-secondary" onclick="window.location.href='/'">
-                    🏠 Main App
+                     Main App
                 </button>
                 <button class="btn btn-secondary" onclick="refreshStats()">
-                    🔄 Refresh
+                     Refresh
                 </button>
             </div>
             <div class="action-buttons">
                 <button class="btn btn-danger" onclick="clearCache()">
-                    🗑️ Clear Cache
+                     Clear Cache
                 </button>
             </div>
         </div>
 
         <!-- Recent Documents -->
         <div class="card recent-queries">
-            <h3>📄 Recent Documents</h3>
+            <h3> Recent Documents</h3>
             <div id="recentDocs">
                 <p style="color: var(--text-secondary); font-size: 13px;">Loading...</p>
             </div>
@@ -208,7 +208,7 @@
 
         <!-- All Documents Table -->
         <div class="card" style="grid-column: 1 / -1;">
-            <h3>📋 All Documents</h3>
+            <h3> All Documents</h3>
             <div style="overflow-x: auto;">
                 <table id="documentsTable">
                     <thead>
@@ -255,11 +255,11 @@
 
                 if (data.status === 'healthy') {
                     indicator.classList.remove('unhealthy');
-                    status.textContent = '✓ System Healthy';
+                    status.textContent = ' System Healthy';
                     status.style.color = 'var(--accent-primary)';
                 } else {
                     indicator.classList.add('unhealthy');
-                    status.textContent = '✗ System Down';
+                    status.textContent = ' System Down';
                     status.style.color = 'var(--error-color)';
                 }
 
@@ -270,7 +270,7 @@
             } catch (error) {
                 console.error('Health check failed:', error);
                 document.getElementById('healthIndicator').classList.add('unhealthy');
-                document.getElementById('healthStatus').textContent = '✗ Connection Failed';
+                document.getElementById('healthStatus').textContent = ' Connection Failed';
             }
         }
 
@@ -315,7 +315,7 @@
                     const recent = documents.slice(0, 5);
                     recentDocs.innerHTML = recent.map(doc => `
                         <div class="query-item">
-                            <div class="query-text">📄 ${escapeHtml(doc.filename)}</div>
+                            <div class="query-text"> ${escapeHtml(doc.filename)}</div>
                             <div class="query-meta">
                                 ID: ${doc.id.substring(0, 12)}... • 
                                 Uploaded: ${new Date(doc.uploaded_at).toLocaleString()} • 
@@ -336,7 +336,7 @@
                             <td>${escapeHtml(doc.filename)}</td>
                             <td>${formatFileSize(doc.file_size || 0)}</td>
                             <td>${new Date(doc.uploaded_at).toLocaleDateString()}</td>
-                            <td><span style="color: var(--accent-primary);">✓ Active</span></td>
+                            <td><span style="color: var(--accent-primary);"> Active</span></td>
                             <td>
                                 <button class="btn-small btn-danger" onclick="deleteDocument('${doc.id}')">
                                     Delete

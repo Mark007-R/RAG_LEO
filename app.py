@@ -1,8 +1,3 @@
-"""
-Production-grade RAG_LEO application.
-Uses application factory pattern with comprehensive error handling,
-logging, security, and monitoring.
-"""
 import time
 import logging
 from datetime import datetime
@@ -10,7 +5,6 @@ from flask import Flask, request, jsonify, render_template, g
 from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
 
-# Load environment variables first
 load_dotenv()
 
 from src.config import settings
@@ -37,59 +31,36 @@ from src.exceptions import (
 )
 from src.utils import ensure_dirs, format_file_size, get_directory_size
 
-# Setup logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# Track application start time
 APP_START_TIME = time.time()
 
-
 def create_app(config_override=None) -> Flask:
-    """
-    Application factory pattern.
-    Creates and configures the Flask application.
-    
-    Args:
-        config_override: Optional configuration overrides for testing
-        
-    Returns:
-        Configured Flask application instance
-    """
-    # Create Flask app
     app = Flask(__name__)
     
-    # Load configuration
     app.config.from_object(settings)
     app.config['SQLALCHEMY_DATABASE_URI'] = settings.DATABASE_URL
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = settings.SECRET_KEY
     app.config['MAX_CONTENT_LENGTH'] = settings.MAX_CONTENT_LENGTH
     
-    # Apply config overrides (for testing)
     if config_override:
         app.config.update(config_override)
     
-    # Initialize directories
     ensure_dirs()
     
-    # Initialize extensions
     init_extensions(app)
     
-    # Initialize database
     with app.app_context():
         db_manager.create_tables()
     
-    # Setup request logging
     request_logger = RequestLogger(app)
     
-    # Register error handlers
     register_error_handlers(app)
     
-    # Register routes
     register_routes(app)
     
-    # Request timing middleware
     @app.before_request
     def before_request():
         g.start_time = time.time()
@@ -104,13 +75,10 @@ def create_app(config_override=None) -> Flask:
     logger.info(f"Application initialized - Environment: {settings.ENV}")
     return app
 
-
 def register_error_handlers(app: Flask):
-    """Register global error handlers."""
     
     @app.errorhandler(RAGLeoException)
     def handle_app_exception(error):
-        """Handle custom application exceptions."""
         logger.error(f"{error.error_type}: {error.message}", exc_info=True)
         response = ErrorResponse(
             error=error.message,
@@ -121,7 +89,6 @@ def register_error_handlers(app: Flask):
     
     @app.errorhandler(HTTPException)
     def handle_http_exception(error):
-        """Handle HTTP exceptions."""
         logger.warning(f"HTTP {error.code}: {error.description}")
         response = ErrorResponse(
             error=error.description or "HTTP error",
@@ -131,7 +98,6 @@ def register_error_handlers(app: Flask):
     
     @app.errorhandler(Exception)
     def handle_generic_exception(error):
-        """Handle unexpected exceptions."""
         logger.error(f"Unhandled exception: {str(error)}", exc_info=True)
         response = ErrorResponse(
             error="An internal server error occurred",
@@ -141,7 +107,6 @@ def register_error_handlers(app: Flask):
     
     @app.errorhandler(413)
     def handle_file_too_large(error):
-        """Handle file size limit exceeded."""
         max_mb = settings.MAX_CONTENT_LENGTH / (1024 * 1024)
         response = ErrorResponse(
             error=f"File too large. Maximum size is {max_mb:.1f}MB",
@@ -149,29 +114,19 @@ def register_error_handlers(app: Flask):
         )
         return jsonify(response.model_dump()), 413
 
-
 def register_routes(app: Flask):
-    """Register all application routes."""
     
     @app.route('/')
     def index():
-        """Render main page."""
         return render_template('index.html')
     
     @app.route('/admin')
     def admin():
-        """Render admin dashboard."""
         return render_template('admin.html')
     
     @app.route('/api/v1/documents', methods=['GET'])
     @limiter.limit("30 per minute")
     def list_documents():
-        """
-        List all uploaded documents.
-        ---
-        Returns:
-            200: List of documents
-        """
         try:
             documents = document_service.list_documents()
             
@@ -193,18 +148,7 @@ def register_routes(app: Flask):
     @limiter.limit("10 per minute")
     @require_api_key
     def upload():
-        """
-        Upload and process a PDF document.
-        Creates embeddings and FAISS index for retrieval.
-        ---
-        Returns:
-            201: Document uploaded successfully
-            400: Invalid request
-            413: File too large
-            500: Processing error
-        """
         try:
-            # Validate request
             if 'file' not in request.files:
                 raise FileUploadError('No file part in request')
             
@@ -212,7 +156,6 @@ def register_routes(app: Flask):
             if file.filename == '':
                 raise FileUploadError('No file selected')
             
-            # Process upload
             document, stats = document_service.upload_document(file)
             
             response = DocumentUploadResponse(
@@ -237,26 +180,14 @@ def register_routes(app: Flask):
     @limiter.limit("30 per minute")
     @require_api_key
     def ask():
-        """
-        Query a document using RAG pipeline.
-        Retrieves relevant chunks and generates answer.
-        ---
-        Returns:
-            200: Query successful
-            400: Invalid request
-            404: Document not found
-            500: Query failed
-        """
         try:
             data = request.get_json() or {}
             
-            # Validate request data
             try:
                 query_req = QueryRequest(**data)
             except Exception as e:
                 raise ValidationError(f"Invalid request data: {str(e)}")
             
-            # Execute query
             query_record, response_data = query_service.execute_query(
                 doc_id=query_req.doc_id,
                 query_text=query_req.query,
@@ -278,17 +209,6 @@ def register_routes(app: Flask):
     @limiter.limit("20 per minute")
     @require_api_key
     def delete_document(doc_id):
-        """
-        Delete a document and its associated index.
-        ---
-        Args:
-            doc_id: Document UUID
-            
-        Returns:
-            200: Document deleted successfully
-            404: Document not found
-            500: Deletion failed
-        """
         try:
             document = document_service.delete_document(doc_id)
             
@@ -309,25 +229,16 @@ def register_routes(app: Flask):
     
     @app.route('/api/v1/health', methods=['GET'])
     def health():
-        """
-        Comprehensive health check endpoint.
-        ---
-        Returns:
-            200: Service healthy
-        """
         try:
             uptime = time.time() - APP_START_TIME
             
-            # Check database
             with db_manager.get_session() as session:
                 doc_count = db_manager.get_document_count(session)
                 query_count = db_manager.get_query_count(session)
                 db_status = "healthy"
             
-            # Check pipeline
             pipeline_status = "healthy" if document_service.pipeline else "unavailable"
             
-            # Calculate disk usage
             disk_usage = 0
             for folder in [settings.get_upload_path(), settings.get_index_path()]:
                 if folder.exists():
@@ -357,12 +268,6 @@ def register_routes(app: Flask):
     @app.route('/api/v1/stats', methods=['GET'])
     @limiter.limit("60 per minute")
     def stats():
-        """
-        Get application statistics.
-        ---
-        Returns:
-            200: Statistics retrieved successfully
-        """
         try:
             uptime = time.time() - APP_START_TIME
             
@@ -370,12 +275,10 @@ def register_routes(app: Flask):
                 from sqlalchemy import func, select
                 from src.models import Document, Query
                 
-                # Get counts
                 total_docs = db_manager.get_document_count(session)
                 total_queries = db_manager.get_query_count(session)
                 active_docs = db_manager.get_document_count(session, include_deleted=False)
                 
-                # Get averages
                 avg_processing_stmt = select(func.avg(Document.processing_time_seconds)).where(
                     Document.processing_time_seconds.isnot(None)
                 )
@@ -386,13 +289,11 @@ def register_routes(app: Flask):
                 )
                 avg_query = session.execute(avg_query_stmt).scalar() or 0
                 
-                # Get total chunks
                 total_chunks_stmt = select(func.sum(Document.chunks_count)).where(
                     Document.chunks_count.isnot(None)
                 )
                 total_chunks = session.execute(total_chunks_stmt).scalar() or 0
             
-            # Calculate storage
             storage_used = 0
             for folder in [settings.get_upload_path(), settings.get_index_path(), settings.get_metadata_path()]:
                 if folder.exists():
@@ -416,10 +317,7 @@ def register_routes(app: Flask):
             logger.error(f"Stats error: {e}", exc_info=True)
             raise ValidationError(f"Stats retrieval failed: {str(e)}")
 
-
-# Create application instance
 app = create_app()
-
 
 if __name__ == '__main__':
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")

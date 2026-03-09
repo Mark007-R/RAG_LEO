@@ -405,7 +405,7 @@
             <div class="sidebar-content">
                 <!-- Upload Section -->
                 <div class="sidebar-section">
-                    <h3>📤 Upload PDF</h3>
+                    <h3> Upload PDF</h3>
                     <div class="upload-area">
                         <form id="uploadForm" enctype="multipart/form-data">
                             <div class="file-input-wrapper">
@@ -425,7 +425,7 @@
 
                 <!-- Documents List -->
                 <div class="sidebar-section">
-                    <h3>📚 Documents</h3>
+                    <h3> Documents</h3>
                     <div id="documentsList" class="documents-list">
                         <p style="color: #8e8ea0; font-size: 13px;">Loading...</p>
                     </div>
@@ -436,13 +436,13 @@
         <!-- Main Chat Area -->
         <div class="main-area">
             <div class="chat-header">
-                <h2>💬 Chat</h2>
-                <button id="clearChat" class="btn-clear">🗑️ Clear</button>
+                <h2> Chat</h2>
+                <button id="clearChat" class="btn-clear"> Clear</button>
             </div>
 
             <div class="chat-messages" id="chat">
                 <div class="welcome-message">
-                    <p>👋 Welcome to RAG_LEO!</p>
+                    <p> Welcome to RAG_LEO!</p>
                     <p>Upload a PDF document and start asking questions.</p>
                 </div>
             </div>
@@ -522,14 +522,14 @@
 
             documentsList.innerHTML = documents.map(doc => `
                 <div class="document-item ${doc.doc_id === currentDocId ? 'active' : ''}" onclick="selectDocument('${doc.doc_id}', '${doc.filename}')">
-                    <span class="doc-name">📄 ${doc.filename}</span>
+                    <span class="doc-name"> ${doc.filename}</span>
                     <span class="doc-id">ID: ${doc.doc_id.substring(0, 8)}...</span>
                     <div class="doc-actions">
                         <button class="btn-small btn-select" onclick="event.stopPropagation(); selectDocument('${doc.doc_id}', '${doc.filename}')">
-                            ${doc.doc_id === currentDocId ? '✓ Selected' : 'Select'}
+                            ${doc.doc_id === currentDocId ? ' Selected' : 'Select'}
                         </button>
                         <button class="btn-small btn-delete" onclick="event.stopPropagation(); deleteDocument('${doc.doc_id}', '${doc.filename}')">
-                            🗑️
+                            
                         </button>
                     </div>
                 </div>
@@ -596,7 +596,7 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    showStatusMessage(`✓ ${result.filename} uploaded!`, 'success');
+                    showStatusMessage(` ${result.filename} uploaded!`, 'success');
                     uploadForm.reset();
                     fileNameDisplay.textContent = 'Choose PDF...';
                     fileNameDisplay.parentElement.classList.remove('file-selected');
@@ -694,7 +694,7 @@
             chunksDiv.className = 'retrieved-chunks';
             chunksDiv.innerHTML = `
                 <details>
-                    <summary>📚 View ${chunks.length} retrieved chunks</summary>
+                    <summary> View ${chunks.length} retrieved chunks</summary>
                     ${chunks.map((chunk, i) => `
                         <div class="chunk-item">
                             <strong>Chunk ${i + 1}:</strong>
@@ -712,7 +712,7 @@
             if (confirm('Clear chat?')) {
                 chat.innerHTML = `
                     <div class="welcome-message">
-                        <p>👋 Chat cleared!</p>
+                        <p> Chat cleared!</p>
                         <p>Ask a new question.</p>
                     </div>
                 `;
