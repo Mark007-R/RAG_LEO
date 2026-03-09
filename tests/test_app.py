@@ -9,9 +9,9 @@ from pathlib import Path
 from io import BytesIO
 
 from app import create_app
-from database import db_manager
-from models import Document, Query
-from config import TestingSettings
+from src.database import db_manager
+from src.models import Document, Query
+from src.config import TestingSettings
 
 
 @pytest.fixture

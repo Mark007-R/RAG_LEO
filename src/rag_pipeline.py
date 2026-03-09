@@ -8,7 +8,7 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 import faiss
 import numpy as np
-from utils import save_pickle, load_pickle
+from .utils import save_pickle, load_pickle
 
 logger = logging.getLogger(__name__)
 

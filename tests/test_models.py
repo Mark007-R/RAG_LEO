@@ -3,8 +3,8 @@ Tests for database models and operations.
 """
 import pytest
 from datetime import datetime
-from database import db_manager
-from models import Document, Query
+from src.database import db_manager
+from src.models import Document, Query
 
 
 def test_document_model():

@@ -9,9 +9,9 @@ from sqlalchemy import create_engine, select, func
 from sqlalchemy.orm import Session, sessionmaker
 from contextlib import contextmanager
 
-from config import settings
-from models import Base, Document, Query, APIKey
-from exceptions import DatabaseError, DocumentNotFoundError
+from .config import settings
+from .models import Base, Document, Query, APIKey
+from .exceptions import DatabaseError, DocumentNotFoundError
 
 logger = logging.getLogger(__name__)
 

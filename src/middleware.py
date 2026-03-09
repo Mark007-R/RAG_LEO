@@ -8,8 +8,8 @@ from typing import Optional
 from flask import request, jsonify, g
 from datetime import datetime
 
-from config import settings
-from exceptions import AuthenticationError, RateLimitError
+from .config import settings
+from .exceptions import AuthenticationError, RateLimitError
 
 logger = logging.getLogger(__name__)
 

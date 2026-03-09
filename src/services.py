@@ -13,18 +13,18 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
-from config import settings
-from database import db_manager
-from models import Document, Query
-from rag_pipeline import RAGPipeline
-from exceptions import (
+from .config import settings
+from .database import db_manager
+from .models import Document, Query
+from .rag_pipeline import RAGPipeline
+from .exceptions import (
     DocumentNotFoundError,
     FileUploadError,
     PDFExtractionError,
     IndexBuildError,
     ValidationError,
 )
-from middleware import RequestValidator, sanitize_filename
+from .middleware import RequestValidator, sanitize_filename
 
 logger = logging.getLogger(__name__)
 

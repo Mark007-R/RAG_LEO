@@ -38,7 +38,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["."]
+source = ["src", "app.py"]
 omit = [
     "*/tests/*",
     "*/venv/*",

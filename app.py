@@ -13,13 +13,13 @@ from dotenv import load_dotenv
 # Load environment variables first
 load_dotenv()
 
-from config import settings
-from extensions import init_extensions, db, limiter
-from database import db_manager
-from logger_config import setup_logging, RequestLogger
-from middleware import require_api_key, RequestValidator
-from services import document_service, query_service
-from schemas import (
+from src.config import settings
+from src.extensions import init_extensions, db, limiter
+from src.database import db_manager
+from src.logger_config import setup_logging, RequestLogger
+from src.middleware import require_api_key, RequestValidator
+from src.services import document_service, query_service
+from src.schemas import (
     DocumentUploadResponse,
     DocumentListResponse,
     QueryRequest,
@@ -29,13 +29,13 @@ from schemas import (
     DocumentDeleteResponse,
     StatsResponse,
 )
-from exceptions import (
+from src.exceptions import (
     RAGLeoException,
     DocumentNotFoundError,
     ValidationError,
     FileUploadError,
 )
-from utils import ensure_dirs, format_file_size, get_directory_size
+from src.utils import ensure_dirs, format_file_size, get_directory_size
 
 # Setup logging
 setup_logging()

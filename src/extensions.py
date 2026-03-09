@@ -21,7 +21,7 @@ limiter = Limiter(
 
 def init_extensions(app):
     """Initialize all Flask extensions with app instance."""
-    from config import settings
+    from .config import settings
     
     # Database
     db.init_app(app)

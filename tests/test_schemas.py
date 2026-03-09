@@ -3,7 +3,7 @@ Tests for Pydantic schemas.
 """
 import pytest
 from pydantic import ValidationError
-from schemas import QueryRequest, DocumentInfo, ErrorResponse
+from src.schemas import QueryRequest, DocumentInfo, ErrorResponse
 
 
 def test_query_request_valid():
