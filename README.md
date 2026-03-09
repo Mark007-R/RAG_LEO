@@ -1,70 +1,52 @@
-# 🧠 RAG Document Q&A System (Flask + FAISS + Llama 3)
+# � RAG_LEO - Production-Grade RAG Document Q&A System
 
-### 📄 Overview
-This project is a **Retrieval-Augmented Generation (RAG)** web application built using **Flask**, **FAISS**, **LangChain**, and **Groq API**.  
-It allows you to **upload PDF documents**, automatically extract and embed their text, and then **ask natural language questions** about them.  
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Flask](https://img.shields.io/badge/Flask-3.0-green.svg)](https://flask.palletsprojects.com/)
+[![Docker](https://img.shields.io/badge/Docker-ready-brightgreen.svg)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-The system retrieves relevant chunks from the document and generates accurate answers using **Llama 3 language model** via the **Groq API** — providing fast, high-quality responses with minimal setup.
+## 📋 Overview
 
----
+RAG_LEO is a **production-ready** Retrieval-Augmented Generation (RAG) system for PDF document Q&A. Built with **Flask**, **FAISS**, **LangChain**, and powered by **Groq's Llama 3 API**, it provides fast, accurate, and scalable document understanding.
 
-## ⚙️ Key Features
+### ✨ Key Production Features
 
-- 📄 **PDF Upload & Extraction:** Automatically extracts text from PDF files using PyPDF2.  
-- 🔍 **Semantic Search with FAISS:** Efficient similarity search using embeddings from SentenceTransformers.  
-- 🧠 **Retrieval-Augmented Generation (RAG):** Combines retrieval and generation for context-aware answers.  
-- 💬 **Question Answering Interface:** Ask questions in plain English about your documents.  
-- 🔄 **Document Management:** Upload, list, and delete PDFs with RESTful endpoints.  
-- ⚡ **Llama 3 Powered:** Uses state-of-the-art Llama 3 model via Groq API for superior answer quality.  
-- 🌐 **Flask REST API:** Simple, scalable API for document upload, querying, and deletion.
-- 🔑 **No Local GPU Required:** Generation runs on Groq's infrastructure, reducing latency and costs.
-- 📊 **Real-time Status Monitoring:** Health check endpoint with system statistics.
-
----
-
-## Project Interface Preview 
-
-### Chat Home Page
-![Chat Home Page](./images/Chat_Home_Page.png)
-
-### Chat Response View
-![Chat Home Page](./images/Chat_Home_Page2.png)
+- 🏗️ **Application Factory Pattern** - Modular, testable architecture
+- 🗄️ **PostgreSQL Support** - Production database with SQLAlchemy ORM
+- 🔒 **Enterprise Security** - API key authentication, rate limiting, CORS
+- 📊 **Database Migrations** - Alembic for schema versioning
+- 🐳 **Docker Ready** - Full containerization with Docker Compose
+- 📈 **Comprehensive Monitoring** - Health checks, metrics, logging
+- ✅ **Test Coverage** - Unit and integration tests with pytest
+- 🚀 **Production Server** - Gunicorn WSGI with nginx reverse proxy
+- 📝 **API Validation** - Pydantic schemas for type safety
+- 🔄 **Background Tasks** - Optional Celery integration
+- 📦 **CI/CD Ready** - Pre-commit hooks, linting, formatting
 
 ---
 
-## 🧩 Architecture
+## 🏗️ Architecture
 
 ```
-          ┌──────────────────┐
-          │   PDF Document   │
-          └────────┬─────────┘
-                   │
-             Text Extraction
-                   │
-          ┌────────▼────────┐
-          │  Chunk Splitting │
-          └────────┬────────┘
-                   │
-        Sentence Embeddings (Local)
-                   │
-          ┌────────▼────────┐
-          │   FAISS Index   │
-          └────────┬────────┘
-                   │
-             Query Embedding
-                   │
-          ┌────────▼────────┐
-          │  Top-K Retrieval│
-          └────────┬────────┘
-                   │
-            Context + Question
-                   │
-          ┌────────▼────────┐
-          │  Groq API       │
-          │  (Llama 3 LLM)  │
-          └─────────────────┘
-                   │
-              Final Answer
+┌─────────────────────────────────────────────────────────┐
+│                    Nginx Reverse Proxy                   │
+│                  (SSL, Rate Limiting)                    │
+└───────────────────────┬─────────────────────────────────┘
+                        │
+┌───────────────────────▼─────────────────────────────────┐
+│                   RAG_LEO Flask App                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Routes     │  │   Services   │  │  Middleware  │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Models     │  │   Schemas    │  │  Extensions  │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+└───────┬──────────────────┬──────────────────┬───────────┘
+        │                  │                  │
+┌───────▼────────┐ ┌───────▼────────┐ ┌──────▼───────┐
+│   PostgreSQL   │ │   Redis Cache  │ │  FAISS Index │
+│   (Database)   │ │ (Rate Limiting)│ │  (Vectors)   │
+└────────────────┘ └────────────────┘ └──────────────┘
 ```
 
 ---
@@ -72,32 +54,91 @@ The system retrieves relevant chunks from the document and generates accurate an
 ## 📁 Project Structure
 
 ```
-📦 RAG_Document_QA/
-├── app.py                    # Flask web server
-├── rag_pipeline.py           # Core RAG pipeline (retrieval + Groq generation)
-├── utils.py                  # Utility functions (save/load pickle, directory setup)
-├── templates/
-│   └── index.html            # Frontend UI
-├── uploads/                  # Uploaded PDFs
-├── indexes/                  # FAISS vector indexes
-├── metadata/                 # Stored text chunks
-├── .env                      # Environment variables (GROQ_API_KEY)
-├── requirements.txt          # Dependencies
-└── README.md                 # This file
+RAG_LEO/
+├── app.py                      # Application entry point (factory pattern)
+├── config.py                   # Configuration management
+├── models.py                   # Database models (SQLAlchemy)
+├── schemas.py                  # Request/response schemas (Pydantic)
+├── services.py                 # Business logic layer
+├── database.py                 # Database operations
+├── extensions.py               # Flask extensions initialization
+├── middleware.py               # Security middleware
+├── exceptions.py               # Custom exceptions
+├── logger_config.py            # Logging configuration
+├── rag_pipeline.py             # RAG pipeline (FAISS + Groq)
+├── utils.py                    # Utility functions
+│
+├── templates/                  # HTML templates
+│   └── index.html
+├── static/                     # Static assets
+│   └── style.css
+│
+├── tests/                      # Test suite
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_app.py
+│   ├── test_models.py
+│   └── test_schemas.py
+│
+├── uploads/                    # Uploaded PDFs (created at runtime)
+├── indexes/                    # FAISS indexes (created at runtime)
+├── metadata/                   # Chunk metadata (created at runtime)
+├── logs/                       # Application logs (created at runtime)
+│
+├── Dockerfile                  # Production Docker image
+├── docker-compose.yml          # Multi-container orchestration
+├── nginx.conf                  # Nginx configuration
+├── requirements.txt            # Production dependencies
+├── requirements-dev.txt        # Development dependencies
+├── .env.example                # Environment variables template
+├── .gitignore                  # Git ignore rules
+├── pyproject.toml              # Python project configuration
+├── .pre-commit-config.yaml     # Pre-commit hooks
+├── Makefile                    # Common tasks automation
+├── deploy.sh                   # Deployment script (Linux/Mac)
+├── deploy.ps1                  # Deployment script (Windows)
+└── README.md                   # This file
 ```
 
 ---
 
-## 🧰 Tech Stack
+## 🚀 Quick Start
 
-| Component | Library |
-|------------|----------|
-| Backend | Flask |
-| Embeddings | SentenceTransformers (`all-MiniLM-L6-v2`) |
-| Vector Search | FAISS |
-| PDF Parsing | PyPDF2 |
-| LLM Framework | LangChain |
-| Generation | Groq API (Llama 3) |
+### Prerequisites
+
+- Python 3.11+
+- Docker & Docker Compose (for containerized deployment)
+- Groq API Key ([Get it here](https://console.groq.com/))
+
+### 1. Clone Repository
+
+```bash
+git clone <repository-url>
+cd RAG_LEO
+```
+
+### 2. Environment Setup
+
+```bash
+# Copy example environment file
+cp .env.example .env
+
+# Edit .env and add your API keys
+# Required: GROQ_API_KEY, SECRET_KEY, API_KEYS
+```
+
+### 3. Choose Your Deployment Method
+
+#### Option A: Docker (Recommended for Production)
+
+```bash
+# Build and start all services
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
 | Language | Python 3.8+ |
 
 ---
