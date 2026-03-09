@@ -368,7 +368,7 @@ def register_routes(app: Flask):
             
             with db_manager.get_session() as session:
                 from sqlalchemy import func, select
-                from models import Document, Query
+                from src.models import Document, Query
                 
                 # Get counts
                 total_docs = db_manager.get_document_count(session)
