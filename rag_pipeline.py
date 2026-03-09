@@ -317,7 +317,7 @@ class RAGPipeline:
         retrieved_chunks: List[str], 
         max_source_chars: int = 2000,
         temperature: float = 0.7,
-        max_tokens: int = 256
+        max_tokens: int = 512
     ) -> str:
         """
         Generate answer using Groq/Llama 3 with retrieved context and query.
@@ -351,8 +351,11 @@ class RAGPipeline:
             # Format messages
             messages = prompt.format_messages(context=context, query=query)
             
+            # Update LLM with custom parameters
+            llm_with_params = self.llm.bind(temperature=temperature, max_tokens=max_tokens)
+            
             # Generate answer using Groq/Llama 3
-            response = self.llm.invoke(messages)
+            response = llm_with_params.invoke(messages)
             answer = response.content
             
             logger.info(f"Generated answer ({len(answer)} chars) using {self.groq_model_name}")
