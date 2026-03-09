@@ -1,225 +1,433 @@
-import os
-import uuid
+"""
+Production-grade RAG_LEO application.
+Uses application factory pattern with comprehensive error handling,
+logging, security, and monitoring.
+"""
+import time
 import logging
-from pathlib import Path
-from flask import Flask, request, jsonify, render_template
-from werkzeug.utils import secure_filename
-from rag_pipeline import RAGPipeline
-from utils import ensure_dirs, save_pickle
+from datetime import datetime
+from flask import Flask, request, jsonify, render_template, g
+from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
 
-# Load environment variables from .env file FIRST
+# Load environment variables first
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+from config import settings
+from extensions import init_extensions, db, limiter
+from database import db_manager
+from logger_config import setup_logging, RequestLogger
+from middleware import require_api_key, RequestValidator
+from services import document_service, query_service
+from schemas import (
+    DocumentUploadResponse,
+    DocumentListResponse,
+    QueryRequest,
+    QueryResponse,
+    ErrorResponse,
+    HealthCheckResponse,
+    DocumentDeleteResponse,
+    StatsResponse,
 )
+from exceptions import (
+    RAGLeoException,
+    DocumentNotFoundError,
+    ValidationError,
+    FileUploadError,
+)
+from utils import ensure_dirs, format_file_size, get_directory_size
+
+# Setup logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
-# Initialize directories
-ensure_dirs()
-
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-app.config['ALLOWED_EXTENSIONS'] = {'pdf'}
-
-# Global pipeline instance
-pipeline = RAGPipeline()
-
-# In-memory document metadata store
-DOCS = {}
+# Track application start time
+APP_START_TIME = time.time()
 
 
-def allowed_file(filename):
-    """Check if file extension is allowed."""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
-
-
-@app.route('/')
-def index():
-    """Render main page."""
-    return render_template('index.html')
-
-
-@app.route('/documents', methods=['GET'])
-def list_documents():
-    """List all uploaded documents."""
-    docs_list = [
-        {'doc_id': doc_id, 'filename': filename}
-        for doc_id, filename in DOCS.items()
-    ]
-    return jsonify({'documents': docs_list, 'count': len(docs_list)})
-
-
-@app.route('/upload', methods=['POST'])
-def upload():
+def create_app(config_override=None) -> Flask:
     """
-    Upload and process a PDF document.
-    Creates embeddings and FAISS index for retrieval.
+    Application factory pattern.
+    Creates and configures the Flask application.
+    
+    Args:
+        config_override: Optional configuration overrides for testing
+        
+    Returns:
+        Configured Flask application instance
     """
-    try:
-        # Validate request
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file part in request'}), 400
+    # Create Flask app
+    app = Flask(__name__)
+    
+    # Load configuration
+    app.config.from_object(settings)
+    app.config['SQLALCHEMY_DATABASE_URI'] = settings.DATABASE_URL
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SECRET_KEY'] = settings.SECRET_KEY
+    app.config['MAX_CONTENT_LENGTH'] = settings.MAX_CONTENT_LENGTH
+    
+    # Apply config overrides (for testing)
+    if config_override:
+        app.config.update(config_override)
+    
+    # Initialize directories
+    ensure_dirs()
+    
+    # Initialize extensions
+    init_extensions(app)
+    
+    # Initialize database
+    with app.app_context():
+        db_manager.create_tables()
+    
+    # Setup request logging
+    request_logger = RequestLogger(app)
+    
+    # Register error handlers
+    register_error_handlers(app)
+    
+    # Register routes
+    register_routes(app)
+    
+    # Request timing middleware
+    @app.before_request
+    def before_request():
+        g.start_time = time.time()
+    
+    @app.after_request
+    def after_request(response):
+        if hasattr(g, 'start_time'):
+            elapsed = (time.time() - g.start_time) * 1000
+            response.headers['X-Response-Time'] = f"{elapsed:.2f}ms"
+        return response
+    
+    logger.info(f"Application initialized - Environment: {settings.ENV}")
+    return app
+
+
+def register_error_handlers(app: Flask):
+    """Register global error handlers."""
+    
+    @app.errorhandler(RAGLeoException)
+    def handle_app_exception(error):
+        """Handle custom application exceptions."""
+        logger.error(f"{error.error_type}: {error.message}", exc_info=True)
+        response = ErrorResponse(
+            error=error.message,
+            error_type=error.error_type,
+            details=error.details
+        )
+        return jsonify(response.model_dump()), error.status_code
+    
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(error):
+        """Handle HTTP exceptions."""
+        logger.warning(f"HTTP {error.code}: {error.description}")
+        response = ErrorResponse(
+            error=error.description or "HTTP error",
+            error_type=f"http_{error.code}"
+        )
+        return jsonify(response.model_dump()), error.code
+    
+    @app.errorhandler(Exception)
+    def handle_generic_exception(error):
+        """Handle unexpected exceptions."""
+        logger.error(f"Unhandled exception: {str(error)}", exc_info=True)
+        response = ErrorResponse(
+            error="An internal server error occurred",
+            error_type="internal_server_error"
+        )
+        return jsonify(response.model_dump()), 500
+    
+    @app.errorhandler(413)
+    def handle_file_too_large(error):
+        """Handle file size limit exceeded."""
+        max_mb = settings.MAX_CONTENT_LENGTH / (1024 * 1024)
+        response = ErrorResponse(
+            error=f"File too large. Maximum size is {max_mb:.1f}MB",
+            error_type="file_too_large"
+        )
+        return jsonify(response.model_dump()), 413
+
+
+def register_routes(app: Flask):
+    """Register all application routes."""
+    
+    @app.route('/')
+    def index():
+        """Render main page."""
+        return render_template('index.html')
+    
+    @app.route('/admin')
+    def admin():
+        """Render admin dashboard."""
+        return render_template('admin.html')
+    
+    @app.route('/api/v1/documents', methods=['GET'])
+    @limiter.limit("30 per minute")
+    def list_documents():
+        """
+        List all uploaded documents.
+        ---
+        Returns:
+            200: List of documents
+        """
+        try:
+            documents = document_service.list_documents()
+            
+            total_size = sum(doc.file_size for doc in documents)
+            
+            response = DocumentListResponse(
+                documents=[doc.to_dict() for doc in documents],
+                count=len(documents),
+                total_size_bytes=total_size
+            )
+            
+            return jsonify(response.model_dump()), 200
         
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
+        except Exception as e:
+            logger.error(f"Error listing documents: {e}", exc_info=True)
+            raise
+    
+    @app.route('/api/v1/upload', methods=['POST'])
+    @limiter.limit("10 per minute")
+    @require_api_key
+    def upload():
+        """
+        Upload and process a PDF document.
+        Creates embeddings and FAISS index for retrieval.
+        ---
+        Returns:
+            201: Document uploaded successfully
+            400: Invalid request
+            413: File too large
+            500: Processing error
+        """
+        try:
+            # Validate request
+            if 'file' not in request.files:
+                raise FileUploadError('No file part in request')
+            
+            file = request.files['file']
+            if file.filename == '':
+                raise FileUploadError('No file selected')
+            
+            # Process upload
+            document, stats = document_service.upload_document(file)
+            
+            response = DocumentUploadResponse(
+                message='Document uploaded and indexed successfully',
+                doc_id=document.doc_id,
+                filename=document.original_filename,
+                chunks_count=stats['chunks_count'],
+                text_length=stats['text_length'],
+                file_size=stats['file_size'],
+                processing_time_seconds=stats['processing_time_seconds']
+            )
+            
+            return jsonify(response.model_dump()), 201
         
-        if not allowed_file(file.filename):
-            return jsonify({'error': 'Only PDF files are allowed'}), 400
-
-        # Generate unique document ID
-        doc_id = str(uuid.uuid4())
-        original_filename = secure_filename(file.filename)
-        save_filename = f"{doc_id}__{original_filename}"
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], save_filename)
-        
-        # Save file
-        file.save(save_path)
-        logger.info(f"Saved file: {save_filename}")
-
-        # Process PDF: extract, chunk, embed, build index
-        logger.info(f"Processing document {doc_id}...")
-        text = pipeline.extract_text_from_pdf(save_path)
-        
-        if not text or len(text.strip()) == 0:
-            os.remove(save_path)
-            return jsonify({'error': 'No text could be extracted from PDF'}), 400
-        
-        chunks = pipeline.chunk_text(text)
-        logger.info(f"Created {len(chunks)} chunks from document")
-        
-        pipeline.build_faiss_index(doc_id)
-        logger.info(f"Built FAISS index for document {doc_id}")
-
-        # Store metadata
-        DOCS[doc_id] = original_filename
-
-        return jsonify({
-            'message': 'Document uploaded and indexed successfully',
-            'doc_id': doc_id,
-            'filename': original_filename,
-            'chunks_count': len(chunks),
-            'text_length': len(text)
-        }), 201
-
-    except Exception as e:
-        logger.error(f"Error during upload: {str(e)}", exc_info=True)
-        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
-
-
-@app.route('/ask', methods=['POST'])
-def ask():
-    """
-    Query a document using RAG pipeline.
-    Retrieves relevant chunks and generates answer.
-    """
-    try:
-        data = request.get_json() or {}
-        query = data.get('query', '').strip()
-        doc_id = data.get('doc_id', '').strip()
-        top_k = data.get('top_k', 4)  # Allow customizable retrieval count
-
-        # Validate inputs
-        if not query:
-            return jsonify({'error': 'Query parameter is required'}), 400
-        if not doc_id:
-            return jsonify({'error': 'doc_id parameter is required'}), 400
-        if doc_id not in DOCS:
-            return jsonify({'error': 'Document not found'}), 404
-
-        logger.info(f"Query received for doc {doc_id}: {query[:100]}...")
-
-        # Load index if needed
-        if pipeline.doc_id != doc_id:
-            logger.info(f"Loading index for document {doc_id}")
+        except RAGLeoException:
+            raise
+        except Exception as e:
+            logger.error(f"Upload error: {e}", exc_info=True)
+            raise FileUploadError(f"Upload failed: {str(e)}")
+    
+    @app.route('/api/v1/ask', methods=['POST'])
+    @limiter.limit("30 per minute")
+    @require_api_key
+    def ask():
+        """
+        Query a document using RAG pipeline.
+        Retrieves relevant chunks and generates answer.
+        ---
+        Returns:
+            200: Query successful
+            400: Invalid request
+            404: Document not found
+            500: Query failed
+        """
+        try:
+            data = request.get_json() or {}
+            
+            # Validate request data
             try:
-                pipeline.load_index(doc_id)
-            except FileNotFoundError:
-                return jsonify({'error': 'Document index not found. Please re-upload the document.'}), 404
-
-        # Retrieve and generate
-        retrieved = pipeline.retrieve(query, top_k=top_k)
-        answer = pipeline.generate_answer(query, retrieved)
-
-        logger.info(f"Generated answer for query on doc {doc_id}")
-
-        return jsonify({
-            'answer': answer,
-            'retrieved_chunks': retrieved,
-            'doc_id': doc_id,
-            'filename': DOCS[doc_id],
-            'query': query
-        })
-
-    except Exception as e:
-        logger.error(f"Error during query: {str(e)}", exc_info=True)
-        return jsonify({'error': f'Query failed: {str(e)}'}), 500
-
-
-@app.route('/document/<doc_id>', methods=['DELETE'])
-def delete_document(doc_id):
-    """Delete a document and its associated index."""
-    try:
-        if doc_id not in DOCS:
-            return jsonify({'error': 'Document not found'}), 404
-
-        filename = DOCS[doc_id]
+                query_req = QueryRequest(**data)
+            except Exception as e:
+                raise ValidationError(f"Invalid request data: {str(e)}")
+            
+            # Execute query
+            query_record, response_data = query_service.execute_query(
+                doc_id=query_req.doc_id,
+                query_text=query_req.query,
+                top_k=query_req.top_k,
+                temperature=query_req.temperature,
+                max_tokens=query_req.max_tokens
+            )
+            
+            response = QueryResponse(**response_data)
+            return jsonify(response.model_dump()), 200
         
-        # Remove uploaded file
-        file_pattern = f"{doc_id}__*"
-        upload_folder = Path(app.config['UPLOAD_FOLDER'])
-        for file_path in upload_folder.glob(file_pattern):
-            os.remove(file_path)
-            logger.info(f"Deleted file: {file_path}")
+        except RAGLeoException:
+            raise
+        except Exception as e:
+            logger.error(f"Query error: {e}", exc_info=True)
+            raise ValidationError(f"Query failed: {str(e)}")
+    
+    @app.route('/api/v1/document/<doc_id>', methods=['DELETE'])
+    @limiter.limit("20 per minute")
+    @require_api_key
+    def delete_document(doc_id):
+        """
+        Delete a document and its associated index.
+        ---
+        Args:
+            doc_id: Document UUID
+            
+        Returns:
+            200: Document deleted successfully
+            404: Document not found
+            500: Deletion failed
+        """
+        try:
+            document = document_service.delete_document(doc_id)
+            
+            response = DocumentDeleteResponse(
+                message='Document deleted successfully',
+                doc_id=document.doc_id,
+                filename=document.original_filename,
+                deleted_at=datetime.utcnow()
+            )
+            
+            return jsonify(response.model_dump()), 200
+        
+        except DocumentNotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"Delete error: {e}", exc_info=True)
+            raise ValidationError(f"Deletion failed: {str(e)}")
+    
+    @app.route('/api/v1/health', methods=['GET'])
+    def health():
+        """
+        Comprehensive health check endpoint.
+        ---
+        Returns:
+            200: Service healthy
+        """
+        try:
+            uptime = time.time() - APP_START_TIME
+            
+            # Check database
+            with db_manager.get_session() as session:
+                doc_count = db_manager.get_document_count(session)
+                query_count = db_manager.get_query_count(session)
+                db_status = "healthy"
+            
+            # Check pipeline
+            pipeline_status = "healthy" if document_service.pipeline else "unavailable"
+            
+            # Calculate disk usage
+            disk_usage = 0
+            for folder in [settings.get_upload_path(), settings.get_index_path()]:
+                if folder.exists():
+                    disk_usage += get_directory_size(folder)
+            disk_usage_mb = disk_usage / (1024 * 1024)
+            
+            response = HealthCheckResponse(
+                status="healthy",
+                app_name=settings.APP_NAME,
+                version=settings.APP_VERSION,
+                environment=settings.ENV,
+                timestamp=datetime.utcnow(),
+                uptime_seconds=round(uptime, 2),
+                documents_count=doc_count,
+                queries_count=query_count,
+                database_status=db_status,
+                pipeline_status=pipeline_status,
+                disk_usage_mb=round(disk_usage_mb, 2)
+            )
+            
+            return jsonify(response.model_dump()), 200
+        
+        except Exception as e:
+            logger.error(f"Health check error: {e}", exc_info=True)
+            return jsonify({'status': 'unhealthy', 'error': str(e)}), 500
+    
+    @app.route('/api/v1/stats', methods=['GET'])
+    @limiter.limit("60 per minute")
+    def stats():
+        """
+        Get application statistics.
+        ---
+        Returns:
+            200: Statistics retrieved successfully
+        """
+        try:
+            uptime = time.time() - APP_START_TIME
+            
+            with db_manager.get_session() as session:
+                from sqlalchemy import func, select
+                from models import Document, Query
+                
+                # Get counts
+                total_docs = db_manager.get_document_count(session)
+                total_queries = db_manager.get_query_count(session)
+                active_docs = db_manager.get_document_count(session, include_deleted=False)
+                
+                # Get averages
+                avg_processing_stmt = select(func.avg(Document.processing_time_seconds)).where(
+                    Document.processing_time_seconds.isnot(None)
+                )
+                avg_processing = session.execute(avg_processing_stmt).scalar() or 0
+                
+                avg_query_stmt = select(func.avg(Query.total_time_ms)).where(
+                    Query.total_time_ms.isnot(None)
+                )
+                avg_query = session.execute(avg_query_stmt).scalar() or 0
+                
+                # Get total chunks
+                total_chunks_stmt = select(func.sum(Document.chunks_count)).where(
+                    Document.chunks_count.isnot(None)
+                )
+                total_chunks = session.execute(total_chunks_stmt).scalar() or 0
+            
+            # Calculate storage
+            storage_used = 0
+            for folder in [settings.get_upload_path(), settings.get_index_path(), settings.get_metadata_path()]:
+                if folder.exists():
+                    storage_used += get_directory_size(folder)
+            storage_mb = storage_used / (1024 * 1024)
+            
+            response = StatsResponse(
+                total_documents=total_docs,
+                total_queries=total_queries,
+                total_chunks=total_chunks,
+                active_documents=active_docs,
+                average_processing_time_seconds=round(avg_processing, 2),
+                average_query_time_ms=round(avg_query, 2),
+                storage_used_mb=round(storage_mb, 2),
+                uptime_seconds=round(uptime, 2)
+            )
+            
+            return jsonify(response.model_dump()), 200
+        
+        except Exception as e:
+            logger.error(f"Stats error: {e}", exc_info=True)
+            raise ValidationError(f"Stats retrieval failed: {str(e)}")
 
-        # Remove index files
-        index_folder = Path('indexes')
-        for index_file in index_folder.glob(f"{doc_id}*"):
-            os.remove(index_file)
-            logger.info(f"Deleted index: {index_file}")
 
-        # Remove from memory
-        del DOCS[doc_id]
-
-        return jsonify({
-            'message': 'Document deleted successfully',
-            'doc_id': doc_id,
-            'filename': filename
-        })
-
-    except Exception as e:
-        logger.error(f"Error deleting document: {str(e)}", exc_info=True)
-        return jsonify({'error': f'Deletion failed: {str(e)}'}), 500
-
-
-@app.route('/health', methods=['GET'])
-def health():
-    """Health check endpoint."""
-    return jsonify({
-        'status': 'healthy',
-        'documents_count': len(DOCS),
-        'current_doc_loaded': pipeline.doc_id
-    })
-
-
-@app.errorhandler(413)
-def request_entity_too_large(error):
-    """Handle file size limit exceeded."""
-    return jsonify({'error': 'File too large. Maximum size is 16MB'}), 413
-
-
-@app.errorhandler(500)
-def internal_server_error(error):
-    """Handle internal server errors."""
-    logger.error(f"Internal server error: {str(error)}")
-    return jsonify({'error': 'Internal server error occurred'}), 500
+# Create application instance
+app = create_app()
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+    logger.info(f"Environment: {settings.ENV}")
+    logger.info(f"Debug mode: {settings.DEBUG}")
+    
+    app.run(
+        host=settings.HOST,
+        port=settings.PORT,
+        debug=settings.DEBUG
+    )
