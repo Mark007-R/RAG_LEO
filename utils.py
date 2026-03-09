@@ -199,31 +199,39 @@ def cleanup_old_files(directory: str, days: int = 7) -> int:
                 if file_time < cutoff_time:
                     os.remove(filepath)
                     removed_count += 1
-                    logger.info(f"Removed old file: {filepath}")
+                    logger.info(f"Removed old file: {filename}")
         
-        logger.info(f"Cleanup completed: removed {removed_count} files from {directory}")
+        logger.info(f"Cleaned up {removed_count} old files from {directory}")
         return removed_count
-        
+    
     except Exception as e:
-        logger.error(f"Error during cleanup of {directory}: {e}")
+        logger.error(f"Cleanup error in {directory}: {e}")
         return 0
 
 
-def delete_document_files(doc_id: str) -> dict:
+def get_directory_size(directory: str) -> int:
     """
-    Delete all files associated with a document ID.
+    Calculate total size of directory in bytes.
     
     Args:
-        doc_id: Document identifier
+        directory: Directory path
         
     Returns:
-        Dictionary with deletion statistics
+        Total size in bytes
     """
-    deleted = {
-        'uploads': 0,
-        'indexes': 0,
-        'metadata': 0
-    }
+    total_size = 0
+    
+    try:
+        for dirpath, dirnames, filenames in os.walk(directory):
+            for filename in filenames:
+                filepath = os.path.join(dirpath, filename)
+                if os.path.exists(filepath):
+                    total_size += os.path.getsize(filepath)
+    except Exception as e:
+        logger.error(f"Error calculating directory size for {directory}: {e}")
+    
+    return total_size
+
     
     try:
         # Remove uploads
