@@ -135,7 +135,7 @@
     <div class="dashboard-container">
         <div class="dashboard-header">
             <div>
-                <h1>🦁 RAG_LEO Admin Dashboard</h1>
+                <h1>RAG_LEO Admin Dashboard</h1>
                 <p style="color: var(--text-secondary); font-size: 13px;">Production Monitoring & Management</p>
             </div>
             <div class="system-health">
@@ -144,7 +144,6 @@
             </div>
         </div>
 
-        <!-- Stats Cards -->
         <div class="card">
             <h3> Total Documents</h3>
             <div class="stat-value" id="totalDocs">-</div>
@@ -169,7 +168,6 @@
             <div class="stat-label">File storage</div>
         </div>
 
-        <!-- System Info -->
         <div class="card">
             <h3> System Information</h3>
             <div style="font-size: 13px; line-height: 1.8;">
@@ -180,7 +178,6 @@
             </div>
         </div>
 
-        <!-- Quick Actions -->
         <div class="card">
             <h3> Quick Actions</h3>
             <div class="action-buttons">
@@ -198,7 +195,6 @@
             </div>
         </div>
 
-        <!-- Recent Documents -->
         <div class="card recent-queries">
             <h3> Recent Documents</h3>
             <div id="recentDocs">
@@ -206,7 +202,6 @@
             </div>
         </div>
 
-        <!-- All Documents Table -->
         <div class="card" style="grid-column: 1 / -1;">
             <h3> All Documents</h3>
             <div style="overflow-x: auto;">
@@ -231,20 +226,14 @@
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
     <script>
-        // Admin Dashboard Logic
-        let statsData = {};
-
-        // Initialize dashboard
         document.addEventListener('DOMContentLoaded', () => {
             checkHealth();
             loadStats();
             loadDocuments();
         });
 
-        // Check system health
         async function checkHealth() {
             try {
                 const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.HEALTH));
@@ -255,26 +244,24 @@
 
                 if (data.status === 'healthy') {
                     indicator.classList.remove('unhealthy');
-                    status.textContent = ' System Healthy';
+                    status.textContent = 'System Healthy';
                     status.style.color = 'var(--accent-primary)';
                 } else {
                     indicator.classList.add('unhealthy');
-                    status.textContent = ' System Down';
+                    status.textContent = 'System Down';
                     status.style.color = 'var(--error-color)';
                 }
 
-                // Update system info
                 document.getElementById('environment').textContent = data.environment || 'N/A';
                 document.getElementById('database').textContent = data.database || 'N/A';
                 document.getElementById('version').textContent = data.version || 'N/A';
             } catch (error) {
                 console.error('Health check failed:', error);
                 document.getElementById('healthIndicator').classList.add('unhealthy');
-                document.getElementById('healthStatus').textContent = ' Connection Failed';
+                document.getElementById('healthStatus').textContent = 'Connection Failed';
             }
         }
 
-        // Load statistics
         async function loadStats() {
             try {
                 const response = await fetch(
@@ -282,8 +269,6 @@
                     { headers: getHeaders() }
                 );
                 const data = await response.json();
-
-                statsData = data;
 
                 document.getElementById('totalDocs').textContent = data.total_documents || 0;
                 document.getElementById('totalQueries').textContent = data.total_queries || 0;
@@ -297,7 +282,6 @@
             }
         }
 
-        // Load documents
         async function loadDocuments() {
             try {
                 const response = await fetch(
@@ -307,7 +291,6 @@
                 const result = await response.json();
                 const documents = result.documents || [];
 
-                // Update recent documents
                 const recentDocs = document.getElementById('recentDocs');
                 if (documents.length === 0) {
                     recentDocs.innerHTML = '<p style="color: var(--text-secondary); font-size: 13px;">No documents yet</p>';
@@ -325,7 +308,6 @@
                     `).join('');
                 }
 
-                // Update documents table
                 const tbody = document.querySelector('#documentsTable tbody');
                 if (documents.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No documents</td></tr>';
@@ -350,7 +332,6 @@
             }
         }
 
-        // Delete document
         async function deleteDocument(docId) {
             if (!confirm('Delete this document? This cannot be undone.')) return;
 
@@ -375,14 +356,12 @@
             }
         }
 
-        // Refresh all stats
         function refreshStats() {
             loadStats();
             loadDocuments();
             checkHealth();
         }
 
-        // Clear cache
         function clearCache() {
             if (!confirm('Clear application cache? This will log you out.')) return;
             localStorage.clear();
@@ -390,7 +369,6 @@
             window.location.reload();
         }
 
-        // Utility: Format file size
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 B';
             const k = 1024;
@@ -399,7 +377,6 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        // Utility: Escape HTML
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
