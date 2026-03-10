@@ -167,25 +167,25 @@ function displayDocuments() {
     if (AppState.documents.length === 0) return;
     
     DOM.documentsList.innerHTML = AppState.documents.map(doc => {
-        const isActive = doc.id === AppState.currentDocId;
-        const uploadDate = doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : 'Unknown';
+        const isActive = doc.doc_id === AppState.currentDocId;
+        const uploadDate = doc.created_at ? new Date(doc.created_at).toLocaleDateString() : 'Unknown';
         const fileSize = doc.file_size ? formatFileSize(doc.file_size) : 'Unknown';
         
         return `
-            <div class="document-item ${isActive ? 'active' : ''}" onclick="selectDocument('${doc.id}', '${escapeHtml(doc.filename)}')">
+            <div class="document-item ${isActive ? 'active' : ''}" onclick="selectDocument('${doc.doc_id}', '${escapeHtml(doc.filename)}')">
                 <div class="doc-header">
                     <span class="doc-name"> ${escapeHtml(doc.filename)}</span>
                 </div>
                 <div class="doc-meta">
-                    <span class="doc-id">ID: ${doc.id.substring(0, 12)}...</span>
+                    <span class="doc-id">ID: ${doc.doc_id.substring(0, 12)}...</span>
                     <span class="doc-date"> ${uploadDate}</span>
                     <span class="doc-size"> ${fileSize}</span>
                 </div>
                 <div class="doc-actions">
-                    <button class="btn-small btn-primary" onclick="event.stopPropagation(); selectDocument('${doc.id}', '${escapeHtml(doc.filename)}')">
+                    <button class="btn-small btn-primary" onclick="event.stopPropagation(); selectDocument('${doc.doc_id}', '${escapeHtml(doc.filename)}')">
                         ${isActive ? ' Selected' : 'Select'}
                     </button>
-                    <button class="btn-small btn-danger" onclick="event.stopPropagation(); deleteDocument('${doc.id}', '${escapeHtml(doc.filename)}')">
+                    <button class="btn-small btn-danger" onclick="event.stopPropagation(); deleteDocument('${doc.doc_id}', '${escapeHtml(doc.filename)}')">
                         
                     </button>
                 </div>
@@ -198,8 +198,8 @@ function displayDocuments() {
 function updateDocumentSelect() {
     DOM.docSelect.innerHTML = '<option value="">Select document...</option>' +
         AppState.documents.map(doc => {
-            const isSelected = doc.id === AppState.currentDocId;
-            return `<option value="${doc.id}" ${isSelected ? 'selected' : ''}>
+            const isSelected = doc.doc_id === AppState.currentDocId;
+            return `<option value="${doc.doc_id}" ${isSelected ? 'selected' : ''}>
                 ${escapeHtml(doc.filename)}
             </option>`;
         }).join('');
