@@ -6,24 +6,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RAG_LEO | Production PDF Q&A Assistant</title>
     <meta name="description" content="AI-powered PDF Question & Answer system with RAG (Retrieval-Augmented Generation)">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 </head>
 
 <body>
+    <div class="bg-orb orb-one"></div>
+    <div class="bg-orb orb-two"></div>
+    <div class="bg-grid"></div>
+
     <div class="app-container">
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
                 <div>
-                    <h1>🦁 RAG_LEO</h1>
-                    <p class="subtitle">Production PDF Q&A</p>
+                    <h1>RAG_LEO</h1>
+                    <p class="subtitle">Production PDF Intelligence</p>
                 </div>
             </div>
 
             <div class="sidebar-content">
                 <!-- API Key Section -->
                 <div class="sidebar-section">
-                    <h3> API Key (Optional)</h3>
+                    <h3>API Key (Optional)</h3>
                     <div class="api-key-section">
                         <input 
                             type="password" 
@@ -33,14 +40,14 @@
                             autocomplete="off"
                         >
                         <div id="apiKeyStatus" class="api-key-status invalid">
-                             No API Key
+                            No API Key
                         </div>
                     </div>
                 </div>
 
                 <!-- Upload Section -->
                 <div class="sidebar-section">
-                    <h3> Upload PDF</h3>
+                    <h3>Upload PDF</h3>
                     <div class="upload-area">
                         <form id="uploadForm" enctype="multipart/form-data">
                             <div class="file-input-wrapper">
@@ -50,7 +57,7 @@
                                 </label>
                             </div>
                             <button type="submit" class="btn btn-primary btn-upload" id="uploadBtn">
-                                <span class="btn-text"> Upload</span>
+                                <span class="btn-text">Upload</span>
                                 <span class="btn-loading"><span class="spinner"></span> Processing...</span>
                             </button>
                         </form>
@@ -60,7 +67,7 @@
 
                 <!-- Documents List -->
                 <div class="sidebar-section">
-                    <h3> Documents</h3>
+                    <h3>Documents</h3>
                     <div id="documentsList" class="documents-list">
                         <p style="color: var(--text-secondary); font-size: 13px;">Loading...</p>
                     </div>
@@ -71,33 +78,39 @@
         <!-- Main Chat Area -->
         <div class="main-area">
             <div class="chat-header">
-                <h2> Chat</h2>
+                <div class="chat-header-main">
+                    <button id="mobileMenuToggle" class="btn-menu" type="button" aria-label="Open menu">Menu</button>
+                    <div>
+                        <h2>Ask Better Questions</h2>
+                        <p class="chat-subtitle">Query your indexed documents with retrieval-augmented answers.</p>
+                    </div>
+                </div>
                 <div class="header-actions">
                     <div class="status-indicator">
                         <span class="status-dot"></span>
                         <span>Connected</span>
                     </div>
-                    <button id="clearChat" class="btn-clear"> Clear</button>
+                    <button id="clearChat" class="btn-clear">Clear</button>
                 </div>
             </div>
 
             <div class="chat-messages" id="chat">
                 <div class="welcome-message">
-                    <p style="font-size: 32px; margin-bottom: 20px;">🦁</p>
-                    <p style="font-size: 20px; font-weight: 500; color: var(--text-primary);">Welcome to RAG_LEO!</p>
-                    <p>Upload a PDF document and start asking questions.</p>
+                    <p class="welcome-kicker">RAG Workspace</p>
+                    <p class="welcome-title">Welcome to RAG_LEO</p>
+                    <p class="welcome-description">Upload a PDF, pick a document, and ask focused questions to get grounded responses fast.</p>
                     
                     <div class="features">
                         <div class="feature">
-                            <h4> PDF Processing</h4>
+                            <h4>PDF Processing</h4>
                             <p>Upload and process PDF documents with automatic text extraction and indexing.</p>
                         </div>
                         <div class="feature">
-                            <h4> Intelligent Search</h4>
+                            <h4>Intelligent Search</h4>
                             <p>FAISS-powered vector search finds the most relevant context for your questions.</p>
                         </div>
                         <div class="feature">
-                            <h4>🤖 AI-Powered Answers</h4>
+                            <h4>AI-Powered Answers</h4>
                             <p>Get accurate answers powered by LangChain and Groq's LLM technology.</p>
                         </div>
                     </div>

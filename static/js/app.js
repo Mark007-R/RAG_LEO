@@ -35,6 +35,8 @@ function cacheDOMElements() {
     DOM.questionInput = document.getElementById('question');
     DOM.uploadBtn = document.getElementById('uploadBtn');
     DOM.askBtn = document.getElementById('askBtn');
+    DOM.mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    DOM.sidebar = document.querySelector('.sidebar');
 }
 
 // Initialize application
@@ -73,6 +75,26 @@ function attachEventListeners() {
     if (DOM.apiKeyInput) {
         DOM.apiKeyInput.addEventListener('input', handleApiKeyInput);
         DOM.apiKeyInput.addEventListener('blur', saveApiKey);
+    }
+
+    // Mobile sidebar toggle
+    if (DOM.mobileMenuToggle && DOM.sidebar) {
+        DOM.mobileMenuToggle.addEventListener('click', () => {
+            DOM.sidebar.classList.toggle('open');
+        });
+
+        document.addEventListener('click', (event) => {
+            const isMobile = window.matchMedia('(max-width: 980px)').matches;
+            if (!isMobile || !DOM.sidebar.classList.contains('open')) {
+                return;
+            }
+
+            const clickedInsideSidebar = DOM.sidebar.contains(event.target);
+            const clickedMenuButton = DOM.mobileMenuToggle.contains(event.target);
+            if (!clickedInsideSidebar && !clickedMenuButton) {
+                DOM.sidebar.classList.remove('open');
+            }
+        });
     }
 }
 
@@ -212,6 +234,10 @@ function selectDocument(docId, filename) {
     displayDocuments();
     localStorage.setItem(APP_CONFIG.STORAGE_KEYS.CURRENT_DOC, docId);
     showStatusMessage(`Selected: ${filename}`, 'success');
+
+    if (DOM.sidebar && window.matchMedia('(max-width: 980px)').matches) {
+        DOM.sidebar.classList.remove('open');
+    }
 }
 
 // Delete document
@@ -407,7 +433,7 @@ function addMessage(text, type, isLoading = false, processingTime = null) {
     msgDiv.id = msgId;
     msgDiv.className = `message ${type}-msg`;
     
-    const label = type === 'user' ? 'You' : '🦁 RAG_LEO';
+    const label = type === 'user' ? 'You' : 'RAG_LEO';
     const timestamp = new Date().toLocaleTimeString();
     
     let metaHtml = `<div class="message-meta">⏰ ${timestamp}`;
@@ -453,8 +479,9 @@ function clearChat() {
     
     DOM.chat.innerHTML = `
         <div class="welcome-message">
-            <p> Chat cleared!</p>
-            <p>Select a document and start asking questions.</p>
+            <p class="welcome-kicker">Session Reset</p>
+            <p class="welcome-title">Chat cleared</p>
+            <p class="welcome-description">Select a document and continue asking questions.</p>
         </div>
     `;
     
