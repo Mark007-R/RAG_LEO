@@ -1,25 +1,18 @@
-// RAG_LEO - Main Application Logic
-
-// Global state
 const AppState = {
     currentDocId: null,
     documents: [],
     chatHistory: [],
     apiKeyValid: false,
-    isLoading: false,
 };
 
-// DOM elements cache
 const DOM = {};
 
-// Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     cacheDOMElements();
     initializeApp();
     attachEventListeners();
 });
 
-// Cache DOM elements
 function cacheDOMElements() {
     DOM.uploadForm = document.getElementById('uploadForm');
     DOM.queryForm = document.getElementById('queryForm');
@@ -39,45 +32,25 @@ function cacheDOMElements() {
     DOM.sidebar = document.querySelector('.sidebar');
 }
 
-// Initialize application
 async function initializeApp() {
-    // Load API key from localStorage
     loadApiKey();
-    
-    // Check backend health
     await checkHealth();
-    
-    // Load documents
     await loadDocuments();
-    
-    // Load chat history from localStorage
     loadChatHistory();
 }
 
-// Attach event listeners
 function attachEventListeners() {
-    // File input change
     DOM.pdfFileInput.addEventListener('change', handleFileSelect);
-    
-    // Upload form submit
     DOM.uploadForm.addEventListener('submit', handleUpload);
-    
-    // Query form submit
     DOM.queryForm.addEventListener('submit', handleQuery);
-    
-    // Clear chat
     DOM.clearChatBtn.addEventListener('click', clearChat);
-    
-    // Document select change
     DOM.docSelect.addEventListener('change', handleDocSelectChange);
-    
-    // API key input
+
     if (DOM.apiKeyInput) {
         DOM.apiKeyInput.addEventListener('input', handleApiKeyInput);
         DOM.apiKeyInput.addEventListener('blur', saveApiKey);
     }
 
-    // Mobile sidebar toggle
     if (DOM.mobileMenuToggle && DOM.sidebar) {
         DOM.mobileMenuToggle.addEventListener('click', () => {
             DOM.sidebar.classList.toggle('open');
@@ -98,7 +71,6 @@ function attachEventListeners() {
     }
 }
 
-// Load API key from localStorage
 function loadApiKey() {
     const savedKey = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.API_KEY);
     if (savedKey && DOM.apiKeyInput) {
@@ -107,13 +79,11 @@ function loadApiKey() {
     }
 }
 
-// Handle API key input
 function handleApiKeyInput(e) {
     const key = e.target.value.trim();
     updateApiKeyStatus(key.length > 0);
 }
 
-// Save API key to localStorage
 function saveApiKey() {
     const key = DOM.apiKeyInput.value.trim();
     if (key) {
@@ -125,7 +95,6 @@ function saveApiKey() {
     }
 }
 
-// Update API key status display
 function updateApiKeyStatus(isValid) {
     if (!DOM.apiKeyStatus) return;
     
@@ -140,24 +109,22 @@ function updateApiKeyStatus(isValid) {
     }
 }
 
-// Check backend health
 async function checkHealth() {
     try {
         const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.HEALTH));
         const data = await response.json();
         
         if (data.status === 'healthy') {
-            console.log(' Backend is healthy');
+            console.log('Backend is healthy');
             return true;
         }
     } catch (error) {
-        console.error(' Backend health check failed:', error);
+        console.error('Backend health check failed:', error);
         showStatusMessage('Backend connection failed', 'error');
         return false;
     }
 }
 
-// Load documents from server
 async function loadDocuments() {
     try {
         const response = await fetch(
@@ -184,7 +151,6 @@ async function loadDocuments() {
     }
 }
 
-// Display documents list in sidebar
 function displayDocuments() {
     if (AppState.documents.length === 0) return;
     
@@ -216,7 +182,6 @@ function displayDocuments() {
     }).join('');
 }
 
-// Update document select dropdown
 function updateDocumentSelect() {
     DOM.docSelect.innerHTML = '<option value="">Select document...</option>' +
         AppState.documents.map(doc => {
@@ -227,7 +192,6 @@ function updateDocumentSelect() {
         }).join('');
 }
 
-// Select document
 function selectDocument(docId, filename) {
     AppState.currentDocId = docId;
     DOM.docSelect.value = docId;
@@ -240,7 +204,6 @@ function selectDocument(docId, filename) {
     }
 }
 
-// Delete document
 async function deleteDocument(docId, filename) {
     if (!confirm(`Delete "${filename}"? This cannot be undone.`)) return;
     
@@ -271,12 +234,10 @@ async function deleteDocument(docId, filename) {
     }
 }
 
-// Handle file select
 function handleFileSelect(e) {
     const file = e.target.files[0];
     
     if (file) {
-        // Validate file type
         const fileName = file.name.toLowerCase();
         const isValidType = APP_CONFIG.ALLOWED_FILE_TYPES.some(type => fileName.endsWith(type));
         
@@ -286,7 +247,6 @@ function handleFileSelect(e) {
             return;
         }
         
-        // Validate file size
         if (file.size > APP_CONFIG.MAX_FILE_SIZE) {
             showStatusMessage(`File too large (max ${formatFileSize(APP_CONFIG.MAX_FILE_SIZE)})`, 'error');
             e.target.value = '';
@@ -301,7 +261,6 @@ function handleFileSelect(e) {
     }
 }
 
-// Handle upload
 async function handleUpload(e) {
     e.preventDefault();
     
@@ -332,12 +291,10 @@ async function handleUpload(e) {
         if (response.ok) {
             showStatusMessage(` ${result.filename} uploaded successfully!`, 'success');
             
-            // Reset form
             DOM.uploadForm.reset();
             DOM.fileNameDisplay.textContent = 'Choose PDF...';
             DOM.fileNameDisplay.parentElement.classList.remove('file-selected');
-            
-            // Reload documents and select the new one
+
             await loadDocuments();
             selectDocument(result.doc_id, result.filename);
         } else {
@@ -351,7 +308,6 @@ async function handleUpload(e) {
     }
 }
 
-// Handle query
 async function handleQuery(e) {
     e.preventDefault();
     
@@ -368,15 +324,12 @@ async function handleQuery(e) {
         return;
     }
     
-    // Remove welcome message if present
     const welcomeMsg = DOM.chat.querySelector('.welcome-message');
     if (welcomeMsg) welcomeMsg.remove();
-    
-    // Add user message
+
     addMessage(question, 'user');
     DOM.questionInput.value = '';
-    
-    // Add loading message
+
     const loadingId = addMessage('Thinking...', 'bot', true);
     setButtonLoading(DOM.askBtn, true);
     
@@ -398,12 +351,10 @@ async function handleQuery(e) {
         
         const result = await response.json();
         
-        // Remove loading message
         const loadingEl = document.getElementById(loadingId);
         if (loadingEl) loadingEl.remove();
         
         if (response.ok) {
-            // Convert ms to seconds for display
             const timeInSeconds = result.total_time_ms / 1000;
             addMessage(result.answer, 'bot', false, timeInSeconds);
             
@@ -411,7 +362,6 @@ async function handleQuery(e) {
                 addRetrievedChunks(result.retrieved_chunks);
             }
             
-            // Save to history
             saveChatMessage(question, result.answer, selectedDocId);
         } else {
             addMessage(`Error: ${result.error || result.detail || 'Query failed'}`, 'bot');
@@ -426,7 +376,6 @@ async function handleQuery(e) {
     }
 }
 
-// Add message to chat
 function addMessage(text, type, isLoading = false, processingTime = null) {
     const msgId = 'msg-' + Date.now();
     const msgDiv = document.createElement('div');
@@ -436,7 +385,7 @@ function addMessage(text, type, isLoading = false, processingTime = null) {
     const label = type === 'user' ? 'You' : 'RAG_LEO';
     const timestamp = new Date().toLocaleTimeString();
     
-    let metaHtml = `<div class="message-meta">⏰ ${timestamp}`;
+    let metaHtml = `<div class="message-meta">${timestamp}`;
     if (processingTime) {
         metaHtml += ` •  ${processingTime.toFixed(2)}s`;
     }
@@ -454,13 +403,12 @@ function addMessage(text, type, isLoading = false, processingTime = null) {
     return msgId;
 }
 
-// Add retrieved chunks
 function addRetrievedChunks(chunks) {
     const chunksDiv = document.createElement('div');
     chunksDiv.className = 'retrieved-chunks';
     chunksDiv.innerHTML = `
         <details>
-            <summary> View ${chunks.length} retrieved context chunks</summary>
+            <summary>View ${chunks.length} retrieved context chunks</summary>
             ${chunks.map((chunk, i) => `
                 <div class="chunk-item">
                     <strong>Chunk ${i + 1} (Relevance Score)</strong>
@@ -473,7 +421,6 @@ function addRetrievedChunks(chunks) {
     DOM.chat.scrollTop = DOM.chat.scrollHeight;
 }
 
-// Clear chat
 function clearChat() {
     if (!confirm('Clear all messages?')) return;
     
@@ -489,7 +436,6 @@ function clearChat() {
     localStorage.removeItem(APP_CONFIG.STORAGE_KEYS.CHAT_HISTORY);
 }
 
-// Handle document select change
 function handleDocSelectChange(e) {
     AppState.currentDocId = e.target.value;
     displayDocuments();
@@ -498,7 +444,6 @@ function handleDocSelectChange(e) {
     }
 }
 
-// Save chat message to history
 function saveChatMessage(question, answer, docId) {
     const message = {
         timestamp: new Date().toISOString(),
@@ -509,7 +454,6 @@ function saveChatMessage(question, answer, docId) {
     
     AppState.chatHistory.push(message);
     
-    // Keep only last 50 messages
     if (AppState.chatHistory.length > 50) {
         AppState.chatHistory = AppState.chatHistory.slice(-50);
     }
@@ -524,7 +468,6 @@ function saveChatMessage(question, answer, docId) {
     }
 }
 
-// Load chat history from localStorage
 function loadChatHistory() {
     try {
         const saved = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.CHAT_HISTORY);
@@ -537,7 +480,6 @@ function loadChatHistory() {
     }
 }
 
-// Set button loading state
 function setButtonLoading(button, isLoading) {
     if (!button) return;
     
@@ -555,7 +497,6 @@ function setButtonLoading(button, isLoading) {
     }
 }
 
-// Show status message
 function showStatusMessage(message, type = 'info') {
     if (!DOM.uploadStatus) return;
     
@@ -568,7 +509,6 @@ function showStatusMessage(message, type = 'info') {
     }, 5000);
 }
 
-// Utility: Format file size
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -577,13 +517,11 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Utility: Escape HTML
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
-// Export for debugging
 window.AppState = AppState;
 window.API_CONFIG = API_CONFIG;
