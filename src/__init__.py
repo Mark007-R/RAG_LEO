@@ -6,7 +6,7 @@ __author__ = "RAG_LEO Team"
 # Make key imports available at package level
 from src.config import settings
 from src.exceptions import RAGLeoException
-from src.extensions import db, migrate, cors, limiter
+from src.extensions import db, migrate, cors
 
 __all__ = [
     "settings",
@@ -14,5 +14,4 @@ __all__ = [
     "db",
     "migrate",
     "cors",
-    "limiter",
 ]

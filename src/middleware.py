@@ -1,57 +1,8 @@
-import logging
 import re
-from functools import wraps
-from typing import Optional
-from flask import request, g
 from werkzeug.datastructures import FileStorage
 
 from .config import settings
-from .exceptions import AuthenticationError, FileSizeError, FileTypeError
-
-logger = logging.getLogger(__name__)
-
-
-def get_api_key_from_request() -> Optional[str]:
-    """Extract API key from request headers."""
-    api_key = request.headers.get('Authorization')
-    if api_key:
-        if api_key.startswith('Bearer '):
-            return api_key[7:]
-        return api_key
-    
-    return request.headers.get('X-API-Key')
-
-
-def verify_api_key(api_key: str, valid_keys: list) -> bool:
-    """Verify if the provided API key is valid."""
-    if not valid_keys:
-        return True
-    return api_key in valid_keys
-
-
-def require_api_key(f):
-    """Decorator to require API key authentication."""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not settings.API_KEY_ENABLED:
-            return f(*args, **kwargs)
-        
-        api_key = get_api_key_from_request()
-        if not api_key:
-            logger.warning(f"Missing API key from {request.remote_addr}")
-            raise AuthenticationError("API key required. Provide via Authorization header or X-API-Key header.")
-        
-        valid_keys = settings.get_api_keys_list()
-        if not verify_api_key(api_key, valid_keys):
-            logger.warning(f"Invalid API key attempt from {request.remote_addr}")
-            raise AuthenticationError("Invalid API key")
-        
-        g.api_key = api_key
-        g.authenticated = True
-        
-        return f(*args, **kwargs)
-    
-    return decorated_function
+from .exceptions import FileSizeError, FileTypeError
 
 
 class RequestValidator:

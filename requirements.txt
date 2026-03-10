@@ -15,7 +15,6 @@ pydantic-settings==2.1.0
 
 # Security & CORS
 flask-cors==4.0.0
-flask-limiter==3.5.0
 python-dotenv==1.0.0
 
 # RAG Pipeline
