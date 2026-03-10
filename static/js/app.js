@@ -377,7 +377,9 @@ async function handleQuery(e) {
         if (loadingEl) loadingEl.remove();
         
         if (response.ok) {
-            addMessage(result.answer, 'bot', false, result.processing_time);
+            // Convert ms to seconds for display
+            const timeInSeconds = result.total_time_ms / 1000;
+            addMessage(result.answer, 'bot', false, timeInSeconds);
             
             if (result.retrieved_chunks && result.retrieved_chunks.length > 0) {
                 addRetrievedChunks(result.retrieved_chunks);

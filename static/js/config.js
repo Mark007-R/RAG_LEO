@@ -6,9 +6,9 @@ const API_CONFIG = {
         HEALTH: '/api/v1/health',
         STATS: '/api/v1/stats',
         UPLOAD: '/api/v1/upload',
-        QUERY: '/api/v1/query',
+        QUERY: '/api/v1/ask',
         DOCUMENTS: '/api/v1/documents',
-        DOCUMENT: '/api/v1/documents', // + /{doc_id}
+        DOCUMENT: '/api/v1/document', // + /{doc_id}
     },
     DEFAULT_HEADERS: {
         'Content-Type': 'application/json',
@@ -21,7 +21,7 @@ const APP_CONFIG = {
     ALLOWED_FILE_TYPES: ['.pdf'],
     DEFAULT_TOP_K: 4,
     DEFAULT_TEMPERATURE: 0.7,
-    DEFAULT_MAX_TOKENS: 1000,
+    DEFAULT_MAX_TOKENS: 512,
     AUTO_SAVE_KEY: true,
     STORAGE_KEYS: {
         API_KEY: 'rag_leo_api_key',
