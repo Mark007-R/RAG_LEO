@@ -17,11 +17,11 @@ class RAGPipeline:
     def __init__(
         self, 
         embed_model_name: str = 'sentence-transformers/all-MiniLM-L6-v2',
-        groq_model_name: str = 'llama-3.1-8b-instant',
+        groq_model_name: str = 'llama-3.3-70b-versatile',
         api_key: Optional[str] = None,
     ):
         
-        logger.info("Initializing RAG Pipeline with Groq/Llama 3...")
+        logger.info("Initializing RAG Pipeline with Groq...")
         
         # Set Groq API key from parameter or environment
         if api_key:

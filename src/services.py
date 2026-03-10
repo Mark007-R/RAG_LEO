@@ -1,10 +1,7 @@
-import os
 import time
 import uuid
 import logging
-from pathlib import Path
 from typing import Optional, List, Tuple
-from datetime import datetime
 
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
@@ -27,7 +24,11 @@ logger = logging.getLogger(__name__)
 class DocumentService:
     
     def __init__(self):
-        self.pipeline = RAGPipeline()
+        self.pipeline = RAGPipeline(
+            embed_model_name=settings.EMBED_MODEL_NAME,
+            groq_model_name=settings.GROQ_MODEL_NAME,
+            api_key=settings.GROQ_API_KEY
+        )
         self.upload_folder = settings.get_upload_path()
         self.upload_folder.mkdir(exist_ok=True)
     
@@ -173,7 +174,11 @@ class DocumentService:
 class QueryService:
     
     def __init__(self):
-        self.pipeline = RAGPipeline()
+        self.pipeline = RAGPipeline(
+            embed_model_name=settings.EMBED_MODEL_NAME,
+            groq_model_name=settings.GROQ_MODEL_NAME,
+            api_key=settings.GROQ_API_KEY
+        )
     
     def execute_query(
         self,
