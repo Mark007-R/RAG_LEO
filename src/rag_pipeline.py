@@ -46,13 +46,13 @@ class RAGPipeline:
         try:
             self.llm = ChatGroq(
                 model=groq_model_name,
-                temperature=0.7,
-                max_tokens=256,
+                temperature=0.3,
+                max_tokens=1024,
                 timeout=30,
                 max_retries=2
             )
             self.groq_model_name = groq_model_name
-            logger.info(f"Loaded Groq/Llama 3 model: {groq_model_name}")
+            logger.info(f"Loaded Groq model: {groq_model_name}")
         except Exception as e:
             logger.error(f"Failed to initialize Groq/Llama 3 model: {e}")
             raise

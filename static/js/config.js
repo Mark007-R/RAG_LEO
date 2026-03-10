@@ -19,9 +19,9 @@ const API_CONFIG = {
 const APP_CONFIG = {
     MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
     ALLOWED_FILE_TYPES: ['.pdf'],
-    DEFAULT_TOP_K: 4,
-    DEFAULT_TEMPERATURE: 0.7,
-    DEFAULT_MAX_TOKENS: 512,
+    DEFAULT_TOP_K: 5,
+    DEFAULT_TEMPERATURE: 0.3,
+    DEFAULT_MAX_TOKENS: 1024,
     AUTO_SAVE_KEY: true,
     STORAGE_KEYS: {
         API_KEY: 'rag_leo_api_key',

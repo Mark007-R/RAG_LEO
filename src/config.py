@@ -37,12 +37,12 @@ class Settings(BaseSettings):
     
     GROQ_API_KEY: str
     EMBED_MODEL_NAME: str = "sentence-transformers/all-MiniLM-L6-v2"
-    GROQ_MODEL_NAME: str = "llama-3.1-8b-instant"
+    GROQ_MODEL_NAME: str = "llama-3.3-70b-versatile"
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
-    TOP_K_RETRIEVAL: int = 4
-    LLM_TEMPERATURE: float = 0.7
-    LLM_MAX_TOKENS: int = 512
+    TOP_K_RETRIEVAL: int = 5
+    LLM_TEMPERATURE: float = 0.3
+    LLM_MAX_TOKENS: int = 1024
     LLM_TIMEOUT: int = 30
     LLM_MAX_RETRIES: int = 2
     
