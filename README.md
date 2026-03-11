@@ -24,6 +24,12 @@ RAG_LEO is a **production-ready** Retrieval-Augmented Generation (RAG) system fo
 
 ---
 
+## 🖼️ Screenshots
+![Chat Home Page](images/Chat_Home_Page.png)
+![Chat Home Page 2](images/Chat_Home_Page2.png)
+
+---
+
 ## 🏗️ Architecture
 
 ```
