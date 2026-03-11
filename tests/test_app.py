@@ -39,6 +39,31 @@ def client(app):
 
 
 @pytest.fixture
+def auth_app():
+    """Create test application instance with API auth enabled."""
+    test_config = {
+        'TESTING': True,
+        'DATABASE_URL': 'sqlite:///:memory:',
+        'API_KEY_ENABLED': True,
+        'API_KEYS': 'test-access-key',
+        'RATE_LIMIT_ENABLED': False,
+    }
+    
+    app = create_app(config_override=test_config)
+    
+    with app.app_context():
+        db_manager.create_tables()
+        yield app
+        db_manager.drop_tables()
+
+
+@pytest.fixture
+def auth_client(auth_app):
+    """Create test client with API auth enabled."""
+    return auth_app.test_client()
+
+
+@pytest.fixture
 def sample_pdf():
     """Create a simple test PDF file."""
     pdf_content = b"""%PDF-1.4
@@ -132,6 +157,31 @@ class TestDocumentEndpoints:
         data = {'file': (BytesIO(b''), '')}
         response = client.post('/api/v1/upload', data=data)
         assert response.status_code == 400
+
+
+class TestApiAuthentication:
+    """Tests for API key authentication."""
+
+    def test_protected_endpoint_requires_api_key(self, auth_client):
+        """Protected API routes should reject requests without a key."""
+        response = auth_client.get('/api/v1/documents')
+        assert response.status_code == 401
+
+        data = response.get_json()
+        assert data['error_type'] == 'authentication_error'
+
+    def test_protected_endpoint_accepts_bearer_key(self, auth_client):
+        """Protected API routes should accept configured bearer keys."""
+        response = auth_client.get(
+            '/api/v1/documents',
+            headers={'Authorization': 'Bearer test-access-key'}
+        )
+        assert response.status_code == 200
+
+    def test_health_endpoint_stays_public(self, auth_client):
+        """Health checks remain accessible without auth."""
+        response = auth_client.get('/api/v1/health')
+        assert response.status_code == 200
 
 
 class TestQueryEndpoints:
