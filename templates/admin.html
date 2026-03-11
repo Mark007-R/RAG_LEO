@@ -264,10 +264,7 @@
 
         async function loadStats() {
             try {
-                const response = await fetch(
-                    getApiUrl(API_CONFIG.ENDPOINTS.STATS),
-                    { headers: getHeaders() }
-                );
+                const response = await apiFetch(API_CONFIG.ENDPOINTS.STATS);
                 const data = await response.json();
 
                 document.getElementById('totalDocs').textContent = data.total_documents || 0;
@@ -284,10 +281,7 @@
 
         async function loadDocuments() {
             try {
-                const response = await fetch(
-                    getApiUrl(API_CONFIG.ENDPOINTS.DOCUMENTS),
-                    { headers: getHeaders() }
-                );
+                const response = await apiFetch(API_CONFIG.ENDPOINTS.DOCUMENTS);
                 const result = await response.json();
                 const documents = result.documents || [];
 
@@ -336,13 +330,9 @@
             if (!confirm('Delete this document? This cannot be undone.')) return;
 
             try {
-                const response = await fetch(
-                    `${getApiUrl(API_CONFIG.ENDPOINTS.DOCUMENT)}/${docId}`,
-                    {
-                        method: 'DELETE',
-                        headers: getHeaders()
-                    }
-                );
+                const response = await apiFetch(`${API_CONFIG.ENDPOINTS.DOCUMENT}/${docId}`, {
+                    method: 'DELETE'
+                });
 
                 if (response.ok) {
                     alert('Document deleted successfully');
