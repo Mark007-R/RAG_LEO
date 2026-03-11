@@ -31,3 +31,4 @@ Thumbs.db
 .DS_Store
 indexes/
 metadata/
+.pytest_cache/
