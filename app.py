@@ -1,5 +1,6 @@
 import time
 import logging
+import hmac
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template, g
 from werkzeug.exceptions import HTTPException
@@ -27,6 +28,7 @@ from src.exceptions import (
     DocumentNotFoundError,
     ValidationError,
     FileUploadError,
+    AuthenticationError,
 )
 from src.utils import ensure_dirs, get_directory_size
 
@@ -34,6 +36,31 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 APP_START_TIME = time.time()
+PUBLIC_ENDPOINTS = {'index', 'admin', 'health', 'static'}
+
+
+def _get_configured_api_keys(app: Flask) -> list[str]:
+    raw_keys = app.config.get('API_KEYS', '')
+    if isinstance(raw_keys, str):
+        return [key.strip() for key in raw_keys.split(',') if key.strip()]
+    if isinstance(raw_keys, (list, tuple, set)):
+        return [str(key).strip() for key in raw_keys if str(key).strip()]
+    return []
+
+
+def _get_request_api_key() -> str:
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.lower().startswith('bearer '):
+        return auth_header[7:].strip()
+    return request.headers.get('X-API-Key', '').strip()
+
+
+def _is_auth_exempt_request() -> bool:
+    if request.method == 'OPTIONS':
+        return True
+    if request.endpoint in PUBLIC_ENDPOINTS:
+        return True
+    return not request.path.startswith('/api/')
 
 def create_app(config_override=None) -> Flask:
     app = Flask(__name__)
@@ -63,6 +90,24 @@ def create_app(config_override=None) -> Flask:
     @app.before_request
     def before_request():
         g.start_time = time.time()
+
+        if _is_auth_exempt_request() or not app.config.get('API_KEY_ENABLED', False):
+            return
+
+        valid_api_keys = _get_configured_api_keys(app)
+        if not valid_api_keys:
+            raise AuthenticationError('API key authentication is enabled, but no API keys are configured')
+
+        provided_api_key = _get_request_api_key()
+        if not provided_api_key:
+            raise AuthenticationError('API key required. Provide via Authorization header or X-API-Key header.')
+
+        is_valid = any(
+            hmac.compare_digest(provided_api_key, configured_key)
+            for configured_key in valid_api_keys
+        )
+        if not is_valid:
+            raise AuthenticationError('Invalid API key provided.')
 
     @app.after_request
     def after_request(response):
