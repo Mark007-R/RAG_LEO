@@ -2,7 +2,6 @@ const AppState = {
     currentDocId: null,
     documents: [],
     chatHistory: [],
-    apiKeyValid: false,
 };
 
 const DOM = {};
@@ -23,8 +22,6 @@ function cacheDOMElements() {
     DOM.pdfFileInput = document.getElementById('pdfFile');
     DOM.fileNameDisplay = document.getElementById('fileName');
     DOM.clearChatBtn = document.getElementById('clearChat');
-    DOM.apiKeyInput = document.getElementById('apiKeyInput');
-    DOM.apiKeyStatus = document.getElementById('apiKeyStatus');
     DOM.questionInput = document.getElementById('question');
     DOM.uploadBtn = document.getElementById('uploadBtn');
     DOM.askBtn = document.getElementById('askBtn');
@@ -33,7 +30,6 @@ function cacheDOMElements() {
 }
 
 async function initializeApp() {
-    loadApiKey();
     await checkHealth();
     await loadDocuments();
     loadChatHistory();
@@ -45,11 +41,6 @@ function attachEventListeners() {
     DOM.queryForm.addEventListener('submit', handleQuery);
     DOM.clearChatBtn.addEventListener('click', clearChat);
     DOM.docSelect.addEventListener('change', handleDocSelectChange);
-
-    if (DOM.apiKeyInput) {
-        DOM.apiKeyInput.addEventListener('input', handleApiKeyInput);
-        DOM.apiKeyInput.addEventListener('blur', saveApiKey);
-    }
 
     if (DOM.mobileMenuToggle && DOM.sidebar) {
         DOM.mobileMenuToggle.addEventListener('click', () => {
@@ -71,47 +62,9 @@ function attachEventListeners() {
     }
 }
 
-function loadApiKey() {
-    const savedKey = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.API_KEY);
-    if (savedKey && DOM.apiKeyInput) {
-        DOM.apiKeyInput.value = savedKey;
-        updateApiKeyStatus(true);
-    }
-}
-
-function handleApiKeyInput(e) {
-    const key = e.target.value.trim();
-    updateApiKeyStatus(key.length > 0);
-}
-
-function saveApiKey() {
-    const key = DOM.apiKeyInput.value.trim();
-    if (key) {
-        localStorage.setItem(APP_CONFIG.STORAGE_KEYS.API_KEY, key);
-        AppState.apiKeyValid = true;
-    } else {
-        localStorage.removeItem(APP_CONFIG.STORAGE_KEYS.API_KEY);
-        AppState.apiKeyValid = false;
-    }
-}
-
-function updateApiKeyStatus(isValid) {
-    if (!DOM.apiKeyStatus) return;
-    
-    AppState.apiKeyValid = isValid;
-    
-    if (isValid) {
-        DOM.apiKeyStatus.className = 'api-key-status valid';
-        DOM.apiKeyStatus.textContent = ' API Key Set';
-    } else {
-        DOM.apiKeyStatus.className = 'api-key-status invalid';
-        DOM.apiKeyStatus.textContent = ' No API Key';
-    }
-}
-
 async function checkHealth() {
     try {
-        const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.HEALTH));
+        const response = await apiFetch(API_CONFIG.ENDPOINTS.HEALTH, { allowAuthPrompt: false });
         const data = await response.json();
         
         if (data.status === 'healthy') {
@@ -127,10 +80,7 @@ async function checkHealth() {
 
 async function loadDocuments() {
     try {
-        const response = await fetch(
-            getApiUrl(API_CONFIG.ENDPOINTS.DOCUMENTS),
-            { headers: getHeaders() }
-        );
+        const response = await apiFetch(API_CONFIG.ENDPOINTS.DOCUMENTS);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
@@ -208,13 +158,9 @@ async function deleteDocument(docId, filename) {
     if (!confirm(`Delete "${filename}"? This cannot be undone.`)) return;
     
     try {
-        const response = await fetch(
-            `${getApiUrl(API_CONFIG.ENDPOINTS.DOCUMENT)}/${docId}`,
-            {
-                method: 'DELETE',
-                headers: getHeaders()
-            }
-        );
+        const response = await apiFetch(`${API_CONFIG.ENDPOINTS.DOCUMENT}/${docId}`, {
+            method: 'DELETE'
+        });
         
         const result = await response.json();
         
@@ -277,14 +223,11 @@ async function handleUpload(e) {
     showStatusMessage('Processing PDF...', 'info');
     
     try {
-        const response = await fetch(
-            getApiUrl(API_CONFIG.ENDPOINTS.UPLOAD),
-            {
-                method: 'POST',
-                headers: getHeadersForFormData(),
-                body: formData
-            }
-        );
+        const response = await apiFetch(API_CONFIG.ENDPOINTS.UPLOAD, {
+            method: 'POST',
+            includeContentType: false,
+            body: formData
+        });
         
         const result = await response.json();
         
@@ -334,20 +277,16 @@ async function handleQuery(e) {
     setButtonLoading(DOM.askBtn, true);
     
     try {
-        const response = await fetch(
-            getApiUrl(API_CONFIG.ENDPOINTS.QUERY),
-            {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({
-                    query: question,
-                    doc_id: selectedDocId,
-                    top_k: APP_CONFIG.DEFAULT_TOP_K,
-                    temperature: APP_CONFIG.DEFAULT_TEMPERATURE,
-                    max_tokens: APP_CONFIG.DEFAULT_MAX_TOKENS
-                })
-            }
-        );
+        const response = await apiFetch(API_CONFIG.ENDPOINTS.QUERY, {
+            method: 'POST',
+            body: JSON.stringify({
+                query: question,
+                doc_id: selectedDocId,
+                top_k: APP_CONFIG.DEFAULT_TOP_K,
+                temperature: APP_CONFIG.DEFAULT_TEMPERATURE,
+                max_tokens: APP_CONFIG.DEFAULT_MAX_TOKENS
+            })
+        });
         
         const result = await response.json();
         
