@@ -2,6 +2,7 @@ const AppState = {
     currentDocId: null,
     documents: [],
     chatHistory: [],
+    messageCounter: 0,
 };
 
 const DOM = {};
@@ -316,7 +317,8 @@ async function handleQuery(e) {
 }
 
 function addMessage(text, type, isLoading = false, processingTime = null) {
-    const msgId = 'msg-' + Date.now();
+    AppState.messageCounter += 1;
+    const msgId = `msg-${Date.now()}-${AppState.messageCounter}`;
     const msgDiv = document.createElement('div');
     msgDiv.id = msgId;
     msgDiv.className = `message ${type}-msg`;
