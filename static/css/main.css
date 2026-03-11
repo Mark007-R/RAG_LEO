@@ -139,8 +139,7 @@ body {
     letter-spacing: 0.12em;
 }
 
-.upload-area,
-.api-key-section {
+.upload-area {
     background: var(--bg-panel-soft);
     border: 1px solid var(--line-soft);
     border-radius: var(--radius-sm);
