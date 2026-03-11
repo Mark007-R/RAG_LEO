@@ -174,7 +174,7 @@ function displayDocuments() {
                         ${isActive ? ' Selected' : 'Select'}
                     </button>
                     <button class="btn-small btn-danger" onclick="event.stopPropagation(); deleteDocument('${doc.doc_id}', '${escapeHtml(doc.filename)}')">
-                        
+                        Delete
                     </button>
                 </div>
             </div>
