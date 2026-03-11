@@ -34,6 +34,14 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Failed to create database tables: {e}")
             raise DatabaseError(f"Database initialization failed: {str(e)}")
+
+    def drop_tables(self):
+        try:
+            Base.metadata.drop_all(bind=self.engine)
+            logger.info("Database tables dropped successfully")
+        except Exception as e:
+            logger.error(f"Failed to drop database tables: {e}")
+            raise DatabaseError(f"Database teardown failed: {str(e)}")
     
     @contextmanager
     def get_session(self):
