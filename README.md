@@ -69,9 +69,14 @@ RAG_LEO/
 ├── utils.py                    # Utility functions
 │
 ├── templates/                  # HTML templates
-│   └── index.html
+│   ├── index.html
+│   └── admin.html
 ├── static/                     # Static assets
-│   └── style.css
+│   ├── css/
+│   │   └── main.css
+│   └── js/
+│       ├── app.js
+│       └── config.js
 │
 ├── tests/                      # Test suite
 │   ├── __init__.py
