@@ -23,14 +23,33 @@ const APP_CONFIG = {
     }
 };
 
+let authPromptInFlight = null;
+
 function getApiUrl(endpoint) {
     return `${API_CONFIG.BASE_URL}${endpoint}`;
+}
+
+function getStoredApiKey() {
+    return localStorage.getItem(APP_CONFIG.STORAGE_KEYS.API_KEY);
+}
+
+function clearStoredApiKey() {
+    localStorage.removeItem(APP_CONFIG.STORAGE_KEYS.API_KEY);
+}
+
+function setStoredApiKey(apiKey) {
+    const normalizedKey = (apiKey || '').trim();
+    if (normalizedKey) {
+        localStorage.setItem(APP_CONFIG.STORAGE_KEYS.API_KEY, normalizedKey);
+    } else {
+        clearStoredApiKey();
+    }
 }
 
 function getHeaders(includeContentType = true) {
     const headers = {};
 
-    const apiKey = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.API_KEY);
+    const apiKey = getStoredApiKey();
     if (apiKey) {
         headers['Authorization'] = `Bearer ${apiKey}`;
     }
@@ -44,9 +63,66 @@ function getHeaders(includeContentType = true) {
 
 function getHeadersForFormData() {
     const headers = {};
-    const apiKey = localStorage.getItem(APP_CONFIG.STORAGE_KEYS.API_KEY);
+    const apiKey = getStoredApiKey();
     if (apiKey) {
         headers['Authorization'] = `Bearer ${apiKey}`;
     }
     return headers;
+}
+
+async function promptForApiKey() {
+    if (authPromptInFlight) {
+        return authPromptInFlight;
+    }
+
+    authPromptInFlight = Promise.resolve().then(() => {
+        const apiKey = window.prompt('This server requires an API access key. Enter it to continue:');
+        if (!apiKey || !apiKey.trim()) {
+            clearStoredApiKey();
+            return false;
+        }
+
+        setStoredApiKey(apiKey);
+        return true;
+    }).finally(() => {
+        authPromptInFlight = null;
+    });
+
+    return authPromptInFlight;
+}
+
+async function apiFetch(endpoint, options = {}) {
+    const {
+        includeContentType = true,
+        allowAuthPrompt = true,
+        headers: customHeaders = {},
+        ...fetchOptions
+    } = options;
+
+    const url = endpoint.startsWith('http') ? endpoint : getApiUrl(endpoint);
+    const requestHeaders = {
+        ...(includeContentType ? getHeaders() : getHeadersForFormData()),
+        ...customHeaders,
+    };
+
+    let response = await fetch(url, {
+        ...fetchOptions,
+        headers: requestHeaders,
+    });
+
+    if (response.status === 401 && allowAuthPrompt) {
+        clearStoredApiKey();
+        const hasReplacementKey = await promptForApiKey();
+        if (hasReplacementKey) {
+            response = await fetch(url, {
+                ...fetchOptions,
+                headers: {
+                    ...(includeContentType ? getHeaders() : getHeadersForFormData()),
+                    ...customHeaders,
+                },
+            });
+        }
+    }
+
+    return response;
 }
